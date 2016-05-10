@@ -15,7 +15,7 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
     """
     body = {'query': query, 'Accept': 'application/sparql-results+json' }
     headers = {'content-type': 'application/x-www-form-urlencoded'}
-    r = requests.request('POST', 'http://localhost:5000/rdf', data=body, headers=headers)
+    r = requests.request('POST', 'http://dev.cafe-trauma.com/rdf', data=body, headers=headers)
     if r.ok:
         try:
             data = r.json()
