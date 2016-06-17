@@ -41,5 +41,10 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 def delete_context(context):
     pass
 
-def run_statements(statments, context, user):
-    pass
+def run_statements(statements, context):
+    body = ' .\n'.join([' '.join(s) for s in statements]) + ' .\n'
+    headers = {'content-type': 'application/n-triples'}
+    params = {'context': context}
+    print(body)
+    r = requests.request('PUT', 'http://localhost:5000/rdf/statements', data=body, headers=headers, params=params)
+    print(r.text)
