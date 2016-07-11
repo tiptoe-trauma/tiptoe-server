@@ -25,7 +25,7 @@ QUESTION_TYPES = (('combo', 'Combo Box'),
                   ('text', 'Text Field'),
                   ('int', 'Integer Field'),
                   ('bool', 'Yes or No'))
-    
+
 class Question(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
     text = models.TextField(blank=False)
@@ -68,6 +68,8 @@ class Answer(models.Model):
         unique_together = ('user', 'question')
     def __str__(self):
         return "{} - {}".format(self.user, self.question.id)
+    def context(self):
+        return "<https://cafe-trauma.com/cafe/user/{}/question/{}>".format(self.user.id, self.id)
 
 class Statement(models.Model):
     question = models.ForeignKey('Question', on_delete=models.CASCADE)
@@ -85,7 +87,7 @@ class RDFPrefix(models.Model):
     def __str__(self):
         return "{}:{}".format(self.short, self.full)
 
-    
+
 # Create user tokens
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -96,9 +98,3 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 def generate_graphs(sender, instance=None, created=False, **kwargs):
     if instance:
         call_command('generate_graphs', str(instance.question.id), verbosity=0)
-
-@receiver(post_save, sender=Answer)
-def add_rdf(sender, instance=None, created=False, **kwargs):
-    if instance:
-        print('Need to add RDF')
-        print(instance)

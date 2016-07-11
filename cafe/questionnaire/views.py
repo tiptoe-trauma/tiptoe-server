@@ -6,7 +6,7 @@ from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
-from questionnaire.rdf import get_definitions, delete_context, run_statements
+from questionnaire.rdf import get_definitions, run_statements, delete_context
 
 
 # Create your views here.
@@ -22,7 +22,7 @@ class DefinitionList(viewsets.ViewSet):
 class CategoryList(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by('order')
     serializer_class = CategorySerializer
-    
+
 class QuestionList(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
@@ -48,7 +48,7 @@ class AnswerAccessPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         self.message = "You can only modify your own answers"
         return obj.user == request.user
-        
+
 class UserView(viewsets.ViewSet):
     authentication_classes = (TokenAuthentication,)
 
@@ -75,14 +75,50 @@ class AnswerViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         Answer.objects.filter(user=self.request.user, question=serializer.validated_data['question']).delete()
-        serializer.save(user=self.request.user)
-        statements = Statement.objects.filter(question=serializer.validated_data['question'])
-        context = 'pass'
-        run_statements(statements, context, self.request.user)
-        
+        instance = serializer.save(user=self.request.user)
+        self.run_rdf(instance)
+
     def perform_update(self, serializer):
-        serializer.save(user=self.request.user)
-        statements = Statement.objects.filter(question=serializer.validated_data['question'])
-        context = 'pass'
-        delete_context(context)
-        run_statements(statements, context, self.request.user)
+        instance = serializer.save(user=self.request.user)
+        self.run_rdf(instance)
+
+    def run_rdf(self, instance):
+        if instance.question.q_type == 'bool':
+            if instance.yesno == True:
+                statements = []
+                for statement in Statement.objects.filter(question=instance.question):
+                    s = self.parse(statement.subject, instance)
+                    p = self.parse(statement.predicate, instance)
+                    o = self.parse(statement.obj, instance)
+                    statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
+        elif instance.question.q_type == 'check':
+            if instance.options:
+                delete_context(instance.context())
+                statements = []
+                for statement in Statement.objects.filter(question=instance.question):
+                    if statement.choice is None:
+                        print(statement)
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                    elif statement.choice in instance.options:
+                        print('choice ' + statement)
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
+
+    def parse(self, statement, answer):
+        pre, uri = statement.split(':')
+        if pre == '_':
+            return statement
+        prefix = RDFPrefix.objects.get(short=pre).full
+        partial_statement = prefix.format(uri)
+        return partial_statement.format(user=answer.user.id)
