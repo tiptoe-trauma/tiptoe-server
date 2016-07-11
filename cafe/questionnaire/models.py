@@ -69,7 +69,7 @@ class Answer(models.Model):
     def __str__(self):
         return "{} - {}".format(self.user, self.question.id)
     def context(self):
-        return "<https://cafe-trauma.com/cafe/user/{}/question/{}>".format(self.user.id, self.id)
+        return "<https://cafe-trauma.com/cafe/user/{}/question/{}>".format(self.user.id, self.question.id)
 
 class Statement(models.Model):
     question = models.ForeignKey('Question', on_delete=models.CASCADE)
