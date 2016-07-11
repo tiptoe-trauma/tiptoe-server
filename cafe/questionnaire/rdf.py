@@ -5,7 +5,7 @@ def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <https://raw.githubusercontent.com/OOSTT/OOSTT/master/oostt.owl>
+    FROM <file://oostt_test.owl>
     WHERE {
       ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
@@ -20,6 +20,7 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
         try:
             data = r.json()
             terms = []
+            terms.append(Definition("test", "A human health care role borne by a physician that, if realized, is realized by having the authority to direct and oversee the management all aspects of the trauma service."))
             for term in data['results']['bindings']:
                 word = term['term']['value']
                 defi = ''
