@@ -84,7 +84,7 @@ class AnswerViewSet(viewsets.ModelViewSet):
 
     def run_rdf(self, instance):
         if instance.question.q_type == 'bool':
-            if instance.yesno:
+            if instance.yesno == True:
                 statements = []
                 for statement in Statement.objects.filter(question=instance.question):
                     s = self.parse(statement.subject, instance)
@@ -94,9 +94,31 @@ class AnswerViewSet(viewsets.ModelViewSet):
                 run_statements(statements, instance.context())
             else:
                 delete_context(instance.context())
+        elif instance.question.q_type == 'check':
+            if instance.options:
+                delete_context(instance.context())
+                statements = []
+                for statement in Statement.objects.filter(question=instance.question):
+                    if statement.choice is None:
+                        print(statement)
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                    elif statement.choice in instance.options:
+                        print('choice ' + statement)
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
 
     def parse(self, statement, answer):
         pre, uri = statement.split(':')
+        if pre == '_':
+            return statement
         prefix = RDFPrefix.objects.get(short=pre).full
         partial_statement = prefix.format(uri)
         return partial_statement.format(user=answer.user.id)
