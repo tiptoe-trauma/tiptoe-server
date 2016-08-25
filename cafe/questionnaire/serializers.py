@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'group')
 
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
