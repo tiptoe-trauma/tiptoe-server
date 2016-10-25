@@ -67,6 +67,14 @@ class Answer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     class Meta:
         unique_together = ('user', 'question')
+    def eq(self, target):
+        if(target.question.q_type == 'yesno'):
+            return self.yesno == target.yesno
+        if(target.question.q_type == 'combo'):
+            return self.text == target.text
+        if(target.question.q_type == 'int'):
+            return self.integer == target.integer
+        return False
     def __str__(self):
         return "{} - {}".format(self.user, self.question.id)
     def context(self):

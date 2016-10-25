@@ -2,7 +2,6 @@ from questionnaire.models import *
 from questionnaire.serializers import *
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
@@ -39,12 +38,21 @@ class QuestionList(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(questions, many=True)
         return Response(serializer.data)
 
-class StatDetails(viewsets.ViewSet):
+class StatView(viewsets.ViewSet):
     serializer_class = StatSerializer
     authentication_classes = (TokenAuthentication,)
 
-    def get(self, request, question):
-        print(question)
+    def retrieve(self, request, pk):
+        print(pk)
+        answer = Answer.objects.get(pk=pk)
+        other_answers = Answer.objects.filter(question=answer.question)
+        truth_map = [x.eq(answer) for x in other_answers]
+        same = truth_map.count(True)
+        percent = 0
+        if len(truth_map) > 0:
+            percent = same / len(truth_map)
+        serializer = StatSerializer({'same': percent})
+        return Response(serializer.data)
 
 class AnswerAccessPermission(permissions.BasePermission):
     message = 'Must be logged in to submit answers'
