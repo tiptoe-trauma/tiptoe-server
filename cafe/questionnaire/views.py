@@ -39,6 +39,13 @@ class QuestionList(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(questions, many=True)
         return Response(serializer.data)
 
+class StatDetails(viewsets.ViewSet):
+    serializer_class = StatSerializer
+    authentication_classes = (TokenAuthentication,)
+
+    def get(self, request, question):
+        print(question)
+
 class AnswerAccessPermission(permissions.BasePermission):
     message = 'Must be logged in to submit answers'
 
