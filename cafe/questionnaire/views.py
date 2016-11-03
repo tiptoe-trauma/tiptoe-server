@@ -2,7 +2,6 @@ from questionnaire.models import *
 from questionnaire.serializers import *
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
@@ -48,6 +47,23 @@ class AnswerAccessPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         self.message = "You can only modify your own answers"
         return obj.user == request.user
+
+class StatView(viewsets.ViewSet):
+    serializer_class = StatSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AnswerAccessPermission,)
+
+    def retrieve(self, request, pk):
+        question = Question.objects.get(pk=pk)
+        answer = Answer.objects.get(question=question, user=request.user)
+        other_answers = Answer.objects.filter(question=answer.question)
+        truth_map = [x.eq(answer) for x in other_answers]
+        same = truth_map.count(True)
+        percent = 0.0
+        if len(truth_map) > 0:
+            percent = same / len(truth_map)
+        serializer = StatSerializer({'same': percent})
+        return Response(serializer.data)
 
 class UserView(viewsets.ViewSet):
     authentication_classes = (TokenAuthentication,)

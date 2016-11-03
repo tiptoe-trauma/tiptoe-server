@@ -7,6 +7,9 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ('id', 'name', 'group')
 
+class StatSerializer(serializers.Serializer):
+    same = serializers.FloatField()
+
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answer

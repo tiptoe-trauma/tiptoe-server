@@ -27,6 +27,7 @@ router.register(r'questions/(?P<category>[0-9]+)', QuestionList)
 router.register(r'answer', AnswerViewSet)
 router.register(r'user', UserView, base_name='user')
 router.register(r'definitions', DefinitionList, base_name='d')
+router.register(r'stats', StatView, base_name='s')
 
 urlpatterns = [
     url(r'^', include(router.urls)),
