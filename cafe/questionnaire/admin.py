@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.apps import apps
+from django import forms
 from questionnaire.models import Question, Statement
 
 @admin.register(Question)
@@ -22,9 +23,19 @@ class StatementFilter(admin.SimpleListFilter):
             return queryset
 
 
+class StatementAdminForm(forms.ModelForm):
+    class Meta:
+        model = Statement
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(StatementAdminForm, self).__init__(*args, **kwargs)
+        self.fields['choice'].queryset = self.instance.question.options
+
 @admin.register(Statement)
 class StatementAdmin(admin.ModelAdmin):
     list_filter = (StatementFilter,)
+    form = StatementAdminForm
 
 # Register your models here.
 app = apps.get_app_config('questionnaire')
