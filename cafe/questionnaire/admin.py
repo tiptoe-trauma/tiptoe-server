@@ -30,7 +30,13 @@ class StatementAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(StatementAdminForm, self).__init__(*args, **kwargs)
-        self.fields['choice'].queryset = self.instance.question.options
+        # This allows you to edit the options easily after a question is created
+        try:
+            self.fields['choice'].queryset = self.instance.question.options
+        # But excepts the first time a statement is created
+        except:
+            pass
+
 
 @admin.register(Statement)
 class StatementAdmin(admin.ModelAdmin):
