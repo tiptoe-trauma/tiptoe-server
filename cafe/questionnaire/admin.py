@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.apps import apps
 from django import forms
 from questionnaire.models import Question, Statement
+from django.core.exceptions import ValidationError
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
@@ -27,6 +28,22 @@ class StatementAdminForm(forms.ModelForm):
     class Meta:
         model = Statement
         fields = '__all__'
+
+    def validate_format(self, value):
+        try:
+            p, specific = value.split(':')
+            print(p, specific)
+        except:
+            raise ValidationError(
+                '{} is not formated correclty are you perhaps missing a colon or prefix?'
+                .format(value))
+
+    def clean(self):
+        print('cleaned?')
+        self.validate_format(self.cleaned_data['subject'])
+        self.validate_format(self.cleaned_data['predicate'])
+        self.validate_format(self.cleaned_data['obj'])
+        return self.cleaned_data
 
     def __init__(self, *args, **kwargs):
         super(StatementAdminForm, self).__init__(*args, **kwargs)
