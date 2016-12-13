@@ -25,6 +25,7 @@ QUESTION_TYPES = (('combo', 'Combo Box'),
                   ('check', 'Check Boxes'),
                   ('text', 'Text Field'),
                   ('int', 'Integer Field'),
+                  ('unit', 'Unit Int Field'),
                   ('bool', 'Yes or No'))
 
 class Question(models.Model):
