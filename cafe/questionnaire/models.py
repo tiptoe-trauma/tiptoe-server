@@ -14,10 +14,15 @@ class Definition():
         self.word = word
         self.definition = definition
 
+QUESTIONNAIRES = (('center', 'Trauma Center'),
+                  ('system', 'Trauma System'))
+
 class Category(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50)
     order = models.IntegerField()
     group = models.CharField(max_length=50, default="default")
+    questionnaire = models.CharField(max_length=6, blank=False,
+                                     choices=QUESTIONNAIRES)
     def __str__(self):
         return self.name
 

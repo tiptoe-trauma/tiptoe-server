@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ('id', 'name', 'group')
+        fields = ('id', 'name', 'group', 'questionnaire')
 
 class StatSerializer(serializers.Serializer):
     same = serializers.FloatField()
