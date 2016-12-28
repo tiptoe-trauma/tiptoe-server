@@ -46,7 +46,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',),
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
 }
 
 MIDDLEWARE_CLASSES = [
