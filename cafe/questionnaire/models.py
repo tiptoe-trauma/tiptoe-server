@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from django.core.management import call_command
+from django.core.exceptions import ObjectDoesNotExist
 import re
 
 # Create your models here.
@@ -42,13 +43,35 @@ class Question(models.Model):
     tags = models.CharField(max_length=100, blank=True, null=True)
     help_text = models.CharField(max_length=500, blank=True, null=True)
     depends_on = models.ManyToManyField('Question', blank=True)
+    depends_string = models.CharField(max_length=200, blank=True, null=True)
 
-    def disabled(self, user):
+    dep_regex = re.compile(r"#(?P<question>\d+)\s(?P<operator>==|!=|>=|>|<|<=)\s(?P<value>'.+'|True|False|\d+)\s?(?P<logic>or|and|xor)*\s?")
+
+    def enabled(self, user):
+        if self.depends_string == None:
+            return True
         if user.is_authenticated():
-            for question in self.depends_on.all():
-                for answer in question.answer.filter(user=user):
-                    if answer.yesno == False:
-                        return True
+            matches = self.dep_regex.finditer(self.depends_string)
+            cur_status = True
+            prev_operator = ""
+            for matchnum, match in enumerate(matches):
+                d = match.groupdict()
+                q = Question.objects.get(pk=int(d['question']))
+                a = Answer.objects.filter(user=user, question=q).first()
+                #print(d, q, a)
+                next_status = self.dep_evaluate(d['operator'], d['value'], q, a)
+                if prev_operator != "":
+                    if prev_operator == 'and':
+                        cur_status = next_status and cur_status
+                    elif prev_operator == 'or':
+                        cur_status = next_status or cur_status
+                    elif prev_operator == 'xor':
+                        cur_status = next_status != cur_status
+                else:
+                    cur_status = next_status
+                if d['logic'] != None:
+                    prev_operator = d['logic']
+            return cur_status
         return False
 
     def __str__(self):
@@ -57,6 +80,32 @@ class Question(models.Model):
     def only_text(self):
         return re.sub(r'<([^>]+)\|([^>]+)>', '\\1', self.text)
 
+    def dep_evaluate(self, operator, value, question, answer):
+        if question.q_type == 'bool':
+            if operator == '==':
+                if answer == None:
+                    return False
+                else:
+                    return str(answer.yesno) == value
+            elif operator == '!=':
+                if answer == None:
+                    return True
+                else:
+                    return str(answer.yesno) != value
+        elif question.q_type == 'combo':
+            if operator == '==':
+                if answer == None:
+                    return False
+                else:
+                    return answer.text == value
+            elif operator == '!=':
+                if answer == None:
+                    return True
+                else:
+                    return answer.text != value
+        # default to enabled
+        print('defaulted')
+        return True
 
 class Option(models.Model):
     text = models.CharField(max_length=200)

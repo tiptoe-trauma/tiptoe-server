@@ -29,14 +29,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'is_staff', 'email')
 
 class QuestionSerializer(serializers.ModelSerializer):
-    disabled = serializers.SerializerMethodField('is_disabled')
+    enabled = serializers.SerializerMethodField('is_enabled')
     graph = serializers.SerializerMethodField('has_graph')
     depends_on = serializers.SerializerMethodField('get_depends')
     answer = serializers.SerializerMethodField('get_user_answer')
 
-    def is_disabled(self, question):
+    def is_enabled(self, question):
         user = self.context['request'].user
-        return question.disabled(user)
+        return question.enabled(user)
 
     def has_graph(self, question):
         s = Statement.objects.filter(question=question)
@@ -62,5 +62,5 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ('id', 'text', 'q_type', 'options', 'answer', 'tags', 'help_text', 'disabled', 'graph', 'depends_on')
+        fields = ('id', 'text', 'q_type', 'options', 'answer', 'tags', 'help_text', 'enabled', 'graph', 'depends_on')
         depth = 1

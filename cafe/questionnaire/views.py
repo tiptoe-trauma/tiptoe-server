@@ -1,6 +1,6 @@
 from questionnaire.models import *
 from questionnaire.serializers import *
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -12,11 +12,8 @@ from questionnaire.rdf import get_definitions, run_statements, delete_context
 class DefinitionList(viewsets.ViewSet):
     def list(self, request):
         words = get_definitions()
-        if words:
-            serializer = DefinitionSerializer(words, many=True)
-            return Response(serializer.data)
-        else:
-            return Response()
+        serializer = DefinitionSerializer(words, many=True)
+        return Response(serializer.data)
 
 class CategoryList(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by('order')
@@ -36,6 +33,16 @@ class QuestionList(viewsets.ReadOnlyModelViewSet):
             else:
                 q.answer = Answer.objects.none()
         serializer = self.get_serializer(questions, many=True)
+        return Response(serializer.data)
+
+class QuestionView(viewsets.ViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    authentication_classes = (TokenAuthentication,)
+
+    def retrieve(self, request, pk):
+        question = Question.objects.get(pk=pk)
+        serializer = QuestionSerializer(question, context={'request': request})
         return Response(serializer.data)
 
 class AnswerAccessPermission(permissions.BasePermission):
@@ -88,6 +95,15 @@ class AnswerViewSet(viewsets.ModelViewSet):
     permission_classes = (AnswerAccessPermission,)
     authentication_classes = (TokenAuthentication,)
     lookup_fields = ('question', 'user')
+
+    def retrieve(self, request, pk=None):
+        if request.user.is_authenticated():
+            queryset = Answer.objects.all()
+            data = get_object_or_404(queryset, question=pk, user=request.user)
+            serializer = AnswerSerializer(data)
+            return Response(serializer.data)
+        else:
+            return Response()
 
     def perform_create(self, serializer):
         Answer.objects.filter(user=self.request.user, question=serializer.validated_data['question']).delete()
