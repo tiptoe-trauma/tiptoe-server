@@ -58,7 +58,7 @@ class Question(models.Model):
                 d = match.groupdict()
                 q = Question.objects.get(pk=int(d['question']))
                 a = Answer.objects.filter(user=user, question=q).first()
-                #print(d, q, a)
+                print(d, q, a)
                 next_status = self.dep_evaluate(d['operator'], d['value'], q, a)
                 if prev_operator != "":
                     if prev_operator == 'and':
@@ -97,12 +97,12 @@ class Question(models.Model):
                 if answer == None:
                     return False
                 else:
-                    return answer.text == value
+                    return answer.text == value.replace("'", '')
             elif operator == '!=':
                 if answer == None:
                     return True
                 else:
-                    return answer.text != value
+                    return answer.text != value.replace("'", '')
         # default to enabled
         print('defaulted')
         return True
