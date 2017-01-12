@@ -47,5 +47,5 @@ def run_statements(statements, context):
     headers = {'content-type': 'application/n-triples'}
     params = {'context': context}
     print(body)
-    r = requests.request('PUT', 'http://localhost:5000/rdf/statements', data=body, headers=headers, params=params)
+    r = requests.request('PUT', 'http://dev.cafe-trauma.com/rdf/statements', data=body, headers=headers, params=params)
     print(r.text)
