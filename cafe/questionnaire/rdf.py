@@ -5,7 +5,7 @@ def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <file://oostt_test.owl>
+    FROM <file://oostt.owl>
     WHERE {
       ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
@@ -49,9 +49,9 @@ def run_statements(statements, context):
     body = ' .\n'.join([' '.join(s) for s in statements]) + ' .\n'
     headers = {'content-type': 'application/n-triples'}
     params = {'context': context}
-    print(body)
+    print('bod: {}'.format(body))
     try:
         r = requests.request('PUT', 'http://dev.cafe-trauma.com/rdf/statements', data=body, headers=headers, params=params)
-        print(r.text)
+        print('finished: {}'.format(r.text))
     except:
         print('failed rdf')
