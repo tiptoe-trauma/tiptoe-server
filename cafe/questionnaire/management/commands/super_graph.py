@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from questionnaire.models import *
+import os
 
 class Command(BaseCommand):
     help = 'Generate Graphviz graph files in graphs/'
@@ -11,6 +12,7 @@ class Command(BaseCommand):
             for statement in Statement.objects.all():
                 f.write(self.parse(statement))
             f.write("}")
+        os.system("dot -Tpng graphs/super.dot -o static_graphs/super.png")
 
     def humanize(self, statement, question):
         if "_:" in statement:
