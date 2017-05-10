@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from django.core.management import call_command
 from django.core.exceptions import ObjectDoesNotExist
 import re
+from datetime import datetime, timedelta
 
 # Create your models here.
 class Definition():
@@ -135,6 +136,17 @@ class Answer(models.Model):
     def context(self):
         return "<https://cafe-trauma.com/cafe/user/{}/question/{}>".format(self.user.id, self.question.id)
 
+FUNCTION_TYPES = (('month_to_date', 'Number of months to date'),
+                  ('example', 'Example'))
+
+def month_to_date(answer):
+    d = datetime.today() - timedelta(months=answer.integer)
+    return d
+
+STATEMENT_MAPPER = {
+    'month_to_date': month_to_date
+}
+
 class Statement(models.Model):
     question = models.ForeignKey('Question', on_delete=models.CASCADE)
     subject = models.CharField(max_length=255)
@@ -142,6 +154,7 @@ class Statement(models.Model):
     obj = models.CharField(max_length=255)
     choice = models.ForeignKey('Option', on_delete=models.CASCADE, null=True, blank=True)
     value = models.BooleanField()
+    f_type = models.CharField(max_length=50, choices=FUNCTION_TYPES, null=True, blank=True)
     def __str__(self):
         return "{} - {} {} {}".format(self.question, self.subject, self.predicate, self.obj)
 
