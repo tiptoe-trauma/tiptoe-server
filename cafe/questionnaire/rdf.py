@@ -5,7 +5,7 @@ def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <https://raw.githubusercontent.com/OOSTT/OOSTT/master/oostt.owl>
+    FROM <file://full_oostt.owl>
     WHERE {
       ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
@@ -16,7 +16,7 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
     body = {'query': query, 'Accept': 'application/sparql-results+json' }
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     try:
-        r = requests.request('POST', 'http://localhost:5000/rdf', data=body, headers=headers)
+        r = requests.request('POST', 'http://dev.cafe-trauma.com/rdf', data=body, headers=headers)
         if r.ok:
             try:
                 data = r.json()
@@ -49,9 +49,9 @@ def run_statements(statements, context):
     body = ' .\n'.join([' '.join(s) for s in statements]) + ' .\n'
     headers = {'content-type': 'application/n-triples'}
     params = {'context': context}
-    print(body)
+    print('bod: {}'.format(body))
     try:
-        r = requests.request('PUT', 'http://localhost:5000/rdf/statements', data=body, headers=headers, params=params)
-        print(r.text)
+        r = requests.request('PUT', 'http://dev.cafe-trauma.com/rdf/statements', data=body, headers=headers, params=params)
+        print('finished: {}'.format(r.text))
     except:
         print('failed rdf')
