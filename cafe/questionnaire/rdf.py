@@ -1,5 +1,6 @@
 import requests
 from questionnaire.models import Definition
+from django.conf import settings
 
 def get_definitions():
     query = """
@@ -16,7 +17,7 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
     body = {'query': query, 'Accept': 'application/sparql-results+json' }
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     try:
-        r = requests.request('POST', 'http://dev.cafe-trauma.com/rdf', data=body, headers=headers)
+        r = requests.request('POST', settings.BASE_URL + 'rdf', data=body, headers=headers)
         if r.ok:
             try:
                 data = r.json()
@@ -51,7 +52,7 @@ def run_statements(statements, context):
     params = {'context': context}
     print('bod: {}'.format(body))
     try:
-        r = requests.request('PUT', 'http://dev.cafe-trauma.com/rdf/statements', data=body, headers=headers, params=params)
+        r = requests.request('PUT', settings.BASE_URL + 'rdf/statements', data=body, headers=headers, params=params)
         print('finished: {}'.format(r.text))
     except:
         print('failed rdf')

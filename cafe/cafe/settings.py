@@ -129,4 +129,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# This is the location of the folder that your proxy server is serving the /static content
 STATIC_ROOT = '/usr/share/nginx/html/static'
+
+# This is the base URL that the site will be located, currently used for RDF requests
+BASE_URL = 'https://dev.cafe-trauma.com/'
