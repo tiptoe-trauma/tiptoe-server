@@ -5,7 +5,7 @@ def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <file://oostt.owl>
+    FROM <file://full_oostt.owl>
     WHERE {
       ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
