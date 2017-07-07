@@ -46,7 +46,7 @@ class Question(models.Model):
     depends_on = models.ManyToManyField('Question', blank=True)
     depends_string = models.CharField(max_length=200, blank=True, null=True)
 
-    dep_regex = re.compile(r"#(?P<question>\d+)\s(?P<operator>==|!=|>=|>|<|<=)\s(?P<value>'.+'|True|False|\d+)\s?(?P<logic>or|and|xor)*\s?")
+    dep_regex = re.compile(r"#(?P<question>\d+)\s(?P<operator>==|!=|>=|>|<|<=)\s(?P<value>'[^']+'|True|False|\d+)\s?(?P<logic>or|and|xor)*\s?")
 
     def enabled(self, user):
         if self.depends_string == None:
