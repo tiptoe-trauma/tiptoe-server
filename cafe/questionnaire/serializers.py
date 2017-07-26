@@ -34,7 +34,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_active(self, user):
         if user.is_authenticated():
             if hasattr(user, 'activeorganization'):
-                return user.activeorganization.organization.name
+                return OrganizationSerializer(user.activeorganization.organization).data
         return None
     class Meta:
         model = User

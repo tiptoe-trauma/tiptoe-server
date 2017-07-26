@@ -111,7 +111,12 @@ class UserView(viewsets.ViewSet):
         org = Organization.objects.filter(pk=org_id, users=request.user)
         if org.exists() == False:
             return Response('organization either does not exist, or you do not have permission', status=403)
-        request.user.activeorganization.organization = org.first()
+        if hasattr(request.user, 'activeorganization'):
+            request.user.activeorganization.organization = org.first()
+        else:
+            ao = ActiveOrganization.objects.create(user=request.user,
+                                                   organization=org.first())
+            request.user.activeorganization = ao
         request.user.save()
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
