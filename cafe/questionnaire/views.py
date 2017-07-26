@@ -55,6 +55,21 @@ class AnswerAccessPermission(permissions.BasePermission):
         self.message = "You can only modify your own answers"
         return obj.user == request.user
 
+class OrganizationAccessPermission(permissions.BasePermission):
+    message = 'Must be logged in to see your organizations'
+
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            if request.user.is_authenticated():
+                self.message = 'You can only create organizations in which you are the user'
+                user_id = request.user.id
+                return 'users' in request.data and user_id in request.data['users']
+        return request.user.is_authenticated()
+
+    def has_object_permission(self, request, view, obj):
+        self.message = "You can only modify your own organizations"
+        return request.user in obj.users.all()
+
 class StatView(viewsets.ViewSet):
     serializer_class = StatSerializer
     authentication_classes = (TokenAuthentication,)
@@ -88,6 +103,30 @@ class UserView(viewsets.ViewSet):
             return Response(serializer.data)
         else:
             return Response()
+
+    def post(self, request):
+        if 'id' not in request.data:
+            return Response('Organization ID required', status=400)
+        org_id = request.data['id']
+        org = Organization.objects.filter(pk=org_id, users=request.user)
+        if org.exists() == False:
+            return Response('organization either does not exist, or you do not have permission', status=403)
+        request.user.activeorganization.organization = org.first()
+        request.user.save()
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+class OrganizationView(viewsets.ModelViewSet):
+    serializer_class = OrganizationSerializer
+    permission_classes = (OrganizationAccessPermission,)
+    authentication_classes = (TokenAuthentication,)
+    queryset = Organization.objects.all()
+
+    def list(self, request):
+        if request.user.is_authenticated():
+            organizations = Organization.objects.filter(users=request.user)
+            return Response(OrganizationSerializer(organizations, many=True).data)
+        return Response()
 
 class AnswerViewSet(viewsets.ModelViewSet):
     serializer_class = AnswerSerializer

@@ -58,7 +58,7 @@ class Question(models.Model):
             for matchnum, match in enumerate(matches):
                 d = match.groupdict()
                 q = Question.objects.get(pk=int(d['question']))
-                a = Answer.objects.filter(user=user, question=q).first()
+                a = Answer.objects.filter(organization=user.activeorganization.organization, question=q).first()
                 print(d, q, a)
                 next_status = self.dep_evaluate(d['operator'], d['value'], q, a)
                 if prev_operator != "":
@@ -114,15 +114,28 @@ class Option(models.Model):
     def __str__(self):
         return self.text
 
+class Organization(models.Model):
+    name = models.CharField(max_length=200)
+    users = models.ManyToManyField(User)
+    def __str__(self):
+        return self.name
+
+class ActiveOrganization(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    organization = models.OneToOneField('Organization', on_delete=models.CASCADE)
+    def __str__(self):
+        return "{}-{}".format(self.user, self.organization)
+
+
 class Answer(models.Model):
     text = models.CharField(max_length=50, null=True, blank=True)
     options = models.ManyToManyField('Option', blank=True)
     question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='answer')
     integer = models.IntegerField(null=True, blank=True)
     yesno = models.NullBooleanField(null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    organization = models.ForeignKey('Organization', on_delete=models.CASCADE)
     class Meta:
-        unique_together = ('user', 'question')
+        unique_together = ('organization', 'question')
     def eq(self, target):
         if(target.question.q_type == 'yesno'):
             return self.yesno == target.yesno
@@ -132,9 +145,9 @@ class Answer(models.Model):
             return self.integer == target.integer
         return False
     def __str__(self):
-        return "{} - {}".format(self.user, self.question.id)
+        return "{} - {}".format(self.organization, self.question.id)
     def context(self):
-        return "<https://cafe-trauma.com/cafe/user/{}/question/{}>".format(self.user.id, self.question.id)
+        return "<https://cafe-trauma.com/cafe/organization/{}/question/{}>".format(self.organization.id, self.question.id)
 
 FUNCTION_TYPES = (('month_to_date', 'Number of months to date'),
                   ('example', 'Example'))
