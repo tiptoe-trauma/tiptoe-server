@@ -29,7 +29,7 @@ class QuestionList(viewsets.ReadOnlyModelViewSet):
         questions = Question.objects.filter(category=category).order_by('order')
         for q in questions:
             if request.user.is_authenticated():
-                q.answer = Answer.objects.filter(user=request.user, question=q)
+                q.answer = Answer.objects.filter(organization=request.user.activeorganization.organization, question=q)
             else:
                 q.answer = Answer.objects.none()
         serializer = self.get_serializer(questions, many=True)
@@ -53,7 +53,7 @@ class AnswerAccessPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         self.message = "You can only modify your own answers"
-        return obj.user == request.user
+        return obj.organization == request.user.activeorganization.organization
 
 class OrganizationAccessPermission(permissions.BasePermission):
     message = 'Must be logged in to see your organizations'
@@ -113,6 +113,7 @@ class UserView(viewsets.ViewSet):
             return Response('organization either does not exist, or you do not have permission', status=403)
         if hasattr(request.user, 'activeorganization'):
             request.user.activeorganization.organization = org.first()
+            request.user.activeorganization.save()
         else:
             ao = ActiveOrganization.objects.create(user=request.user,
                                                    organization=org.first())
@@ -143,19 +144,19 @@ class AnswerViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, pk=None):
         if request.user.is_authenticated():
             queryset = Answer.objects.all()
-            data = get_object_or_404(queryset, question=pk, user=request.user)
+            data = get_object_or_404(queryset, question=pk, organization=request.user.activeorganization.organization)
             serializer = AnswerSerializer(data)
             return Response(serializer.data)
         else:
             return Response()
 
     def perform_create(self, serializer):
-        Answer.objects.filter(user=self.request.user, question=serializer.validated_data['question']).delete()
-        instance = serializer.save(user=self.request.user)
+        Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question']).delete()
+        instance = serializer.save(organization=self.request.user.activeorganization.organization)
         self.run_rdf(instance)
 
     def perform_update(self, serializer):
-        instance = serializer.save(user=self.request.user)
+        instance = serializer.save(organization=self.request.user.activeorganization.organization)
         self.run_rdf(instance)
 
     def run_rdf(self, instance):
@@ -197,4 +198,4 @@ class AnswerViewSet(viewsets.ModelViewSet):
             return statement
         prefix = RDFPrefix.objects.get(short=pre).full
         partial_statement = prefix.format(uri)
-        return partial_statement.format(user=answer.user.id)
+        return partial_statement.format(user=answer.organization.id)

@@ -64,7 +64,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if user.is_authenticated():
             try:
-                answers = Answer.objects.get(question=question, user=user)
+                answers = Answer.objects.get(question=question, organization=user.activeorganization.organization)
                 serializer = AnswerSerializer(answers)
                 if answers:
                     return serializer.data

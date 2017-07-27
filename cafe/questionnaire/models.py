@@ -117,6 +117,7 @@ class Option(models.Model):
 class Organization(models.Model):
     name = models.CharField(max_length=200)
     users = models.ManyToManyField(User)
+    org_type = models.CharField(max_length=6)
     def __str__(self):
         return self.name
 
