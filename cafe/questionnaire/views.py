@@ -1,11 +1,13 @@
 from questionnaire.models import *
 from questionnaire.serializers import *
 from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
-from questionnaire.rdf import get_definitions, run_statements, delete_context
+from questionnaire.rdf import get_definitions, run_statements, delete_context, rdf_from_organization
 
 
 # Create your views here.
@@ -199,3 +201,14 @@ class AnswerViewSet(viewsets.ModelViewSet):
         prefix = RDFPrefix.objects.get(short=pre).full
         partial_statement = prefix.format(uri)
         return partial_statement.format(user=answer.organization.id)
+
+class RDFView(APIView):
+    authentication_classes = (TokenAuthentication,)
+
+    def get(self, request, organization_id):
+        organization = Organization.objects.get(pk=organization_id)
+        if request.user.is_authenticated() and request.user in organization.users.all():
+            rdf = rdf_from_organization(organization)
+            return HttpResponse(rdf, content_type="rdf/xml")
+        else:
+            return Response('Incorrect User', status=403)

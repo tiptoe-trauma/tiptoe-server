@@ -149,7 +149,7 @@ def get_triples(answer, prefixes, bnodes):
     return ret
 
 
-def rdf_from_survey(organization):
+def rdf_from_organization(organization):
     # first clear graph
     g = Graph()
     bnodes = {}
