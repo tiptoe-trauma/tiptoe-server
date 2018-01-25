@@ -58,8 +58,8 @@ def run_statements(statements, context):
     except:
         print('failed rdf')
 
-def get_uri(text, prefixes, bnodes):
-    split = text.split(':')
+def get_uri(text, prefixes, bnodes, organization):
+    split = text.format({'user': organization.id}).split(':')
     if len(split) > 1:
         # we have a prefix
         if split[0] == '_':
@@ -90,59 +90,59 @@ def get_triples(answer, prefixes, bnodes):
         if answer.yesno:
             for statement in Statement.objects.filter(question=answer.question,
                                                       value=True):
-                s = get_uri(statement.subject, prefixes, bnodes)
-                p = get_uri(statement.predicate, prefixes, bnodes)
-                o = get_uri(statement.obj, prefixes, bnodes)
+                s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+                o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
                 ret.append((s, p, o))
         else:
             for statement in Statement.objects.filter(question=answer.question,
                                                       value=False):
-                s = get_uri(statement.subject, prefixes, bnodes)
-                p = get_uri(statement.predicate, prefixes, bnodes)
-                o = get_uri(statement.obj, prefixes, bnodes)
+                s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+                o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
                 ret.append((s, p, o))
     #elif q_type == 'check':
     #    if answer.options:
     #        for statement in Statement.objects.filter(question=answer.question):
     #            if statement.choice is not None:
     #                if statement.choice in answer.options:
-    #                    s = get_uri(statement.subject, prefixes, bnodes)
-    #                    p = get_uri(statement.predicate, prefixes, bnodes)
-    #                    o = get_uri(statement.obj, prefixes, bnodes)
+    #                    s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+    #                    p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+    #                    o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
     #                    ret.append((s, p, o))
     #            else:
-    #                s = get_uri(statement.subject, prefixes, bnodes)
-    #                p = get_uri(statement.predicate, prefixes, bnodes)
-    #                o = get_uri(statement.obj, prefixes, bnodes)
+    #                s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+    #                p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+    #                o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
     #                ret.append((s, p, o))
     elif q_type == 'combo':
         if answer.text:
             for statement in Statement.objects.filter(question=answer.question):
                 if statement.choice is not None:
                     if str(statement.choice) == str(answer.text):
-                        s = get_uri(statement.subject, prefixes, bnodes)
-                        p = get_uri(statement.predicate, prefixes, bnodes)
-                        o = get_uri(statement.obj, prefixes, bnodes)
+                        s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                        p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+                        o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
                         ret.append((s, p, o))
                 else:
-                    s = get_uri(statement.subject, prefixes, bnodes)
-                    p = get_uri(statement.predicate, prefixes, bnodes)
-                    o = get_uri(statement.obj, prefixes, bnodes)
+                    s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                    p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+                    o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
                     ret.append((s, p, o))
     elif q_type == 'int' or q_type == 'text':
         for statement in Statement.objects.filter(question=answer.question):
             if statement.value:
-                s = get_uri(statement.subject, prefixes, bnodes)
-                p = get_uri(statement.predicate, prefixes, bnodes)
+                s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
                 if q_type == 'int':
                     o = Literal(answer.integer)
                 else:
                     o = Literal(answer.text)
                 ret.append((s, p, o))
             else:
-                s = get_uri(statement.subject, prefixes, bnodes)
-                p = get_uri(statement.predicate, prefixes, bnodes)
-                o = get_uri(statement.obj, prefixes, bnodes)
+                s = get_uri(statement.subject, prefixes, bnodes, answer.organization)
+                p = get_uri(statement.predicate, prefixes, bnodes, answer.organization)
+                o = get_uri(statement.obj, prefixes, bnodes, answer.organization)
                 ret.append((s, p, o))
 
 
