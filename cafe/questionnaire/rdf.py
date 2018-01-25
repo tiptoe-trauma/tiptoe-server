@@ -1,6 +1,7 @@
 import requests
-from questionnaire.models import Definition
+from questionnaire.models import *
 from django.conf import settings
+from rdflib import Graph, BNode, URIRef, Literal, Namespace
 
 def get_definitions():
     query = """
@@ -56,3 +57,112 @@ def run_statements(statements, context):
         print('finished: {}'.format(r.text))
     except:
         print('failed rdf')
+
+def get_uri(text, prefixes, bnodes):
+    split = text.split(':')
+    if len(split) > 1:
+        # we have a prefix
+        if split[0] == '_':
+            # we have a blank node
+            # check to see if it already exists
+            if split[1] in bnodes.keys():
+                return bnodes[split[1]]
+            else:
+                # if not create it
+                b = BNode(split[1])
+                bnodes[split[1]] = b
+                return b
+        else:
+            if split[0] in prefixes.keys():
+                return prefixes[split[0]][split[1]]
+            else:
+                print('No prefix found: {}'.format(split))
+                return None
+    else:
+        return text
+    pass
+
+
+def get_triples(answer, prefixes, bnodes):
+    ret = []
+    q_type = answer.question.q_type
+    if q_type == 'bool':
+        if answer.yesno:
+            for statement in Statement.objects.filter(question=answer.question,
+                                                      value=True):
+                s = get_uri(statement.subject, prefixes, bnodes)
+                p = get_uri(statement.predicate, prefixes, bnodes)
+                o = get_uri(statement.obj, prefixes, bnodes)
+                ret.append((s, p, o))
+        else:
+            for statement in Statement.objects.filter(question=answer.question,
+                                                      value=False):
+                s = get_uri(statement.subject, prefixes, bnodes)
+                p = get_uri(statement.predicate, prefixes, bnodes)
+                o = get_uri(statement.obj, prefixes, bnodes)
+                ret.append((s, p, o))
+    #elif q_type == 'check':
+    #    if answer.options:
+    #        for statement in Statement.objects.filter(question=answer.question):
+    #            if statement.choice is not None:
+    #                if statement.choice in answer.options:
+    #                    s = get_uri(statement.subject, prefixes, bnodes)
+    #                    p = get_uri(statement.predicate, prefixes, bnodes)
+    #                    o = get_uri(statement.obj, prefixes, bnodes)
+    #                    ret.append((s, p, o))
+    #            else:
+    #                s = get_uri(statement.subject, prefixes, bnodes)
+    #                p = get_uri(statement.predicate, prefixes, bnodes)
+    #                o = get_uri(statement.obj, prefixes, bnodes)
+    #                ret.append((s, p, o))
+    elif q_type == 'combo':
+        if answer.text:
+            for statement in Statement.objects.filter(question=answer.question):
+                if statement.choice is not None:
+                    if str(statement.choice) == str(answer.text):
+                        s = get_uri(statement.subject, prefixes, bnodes)
+                        p = get_uri(statement.predicate, prefixes, bnodes)
+                        o = get_uri(statement.obj, prefixes, bnodes)
+                        ret.append((s, p, o))
+                else:
+                    s = get_uri(statement.subject, prefixes, bnodes)
+                    p = get_uri(statement.predicate, prefixes, bnodes)
+                    o = get_uri(statement.obj, prefixes, bnodes)
+                    ret.append((s, p, o))
+    elif q_type == 'int' or q_type == 'text':
+        for statement in Statement.objects.filter(question=answer.question):
+            if statement.value:
+                s = get_uri(statement.subject, prefixes, bnodes)
+                p = get_uri(statement.predicate, prefixes, bnodes)
+                if q_type == 'int':
+                    o = Literal(answer.integer)
+                else:
+                    o = Literal(answer.text)
+                ret.append((s, p, o))
+            else:
+                s = get_uri(statement.subject, prefixes, bnodes)
+                p = get_uri(statement.predicate, prefixes, bnodes)
+                o = get_uri(statement.obj, prefixes, bnodes)
+                ret.append((s, p, o))
+
+
+    return ret
+
+
+def rdf_from_survey(organization):
+    # first clear graph
+    g = Graph()
+    bnodes = {}
+
+    # next load prefixes
+    prefixes = {}
+    for prefix in RDFPrefix.objects.all():
+        prefixes[prefix.short] = Namespace(prefix.full)
+        g.bind(prefix.short, prefixes[prefix.short])
+
+    # Generate triples for answers
+    for answer in Answer.objects.filter(organization=organization):
+        for triple in get_triples(answer, prefixes, bnodes):
+            g.add(triple)
+
+    return g.serialize()
