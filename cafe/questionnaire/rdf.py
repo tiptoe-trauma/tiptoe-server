@@ -59,7 +59,7 @@ def run_statements(statements, context):
         print('failed rdf')
 
 def get_uri(text, prefixes, bnodes, organization):
-    split = text.format({'user': organization.id}).split(':')
+    split = text.format(user=organization.id).split(':')
     if len(split) > 1:
         # we have a prefix
         if split[0] == '_':
