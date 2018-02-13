@@ -63,16 +63,20 @@ def get_uri(text, prefixes, bnodes, answer):
     if len(split) > 1:
         # we have a prefix
         if split[0] == '_':
-            bnode_name = split[1] + str(answer.id)
-            # we have a blank node
-            # check to see if it already exists
-            if bnode_name in bnodes.keys():
-                return bnodes[bnode_name]
+            if '{' in split[1]:
+                return Literal(answer.integer)
             else:
-                # if not create it
-                b = BNode(bnode_name)
-                bnodes[bnode_name] = b
-                return b
+                bnode_name = split[1] + str(answer.id)
+                # we have a blank node
+                # check to see if it already exists
+                if bnode_name in bnodes.keys():
+                    return bnodes[bnode_name]
+                else:
+                    # if not create it
+                    # b = BNode(bnode_name)
+                    b = prefixes['bnode'][bnode_name]
+                    bnodes[bnode_name] = b
+                    return b
         else:
             if split[0] in prefixes.keys():
                 return prefixes[split[0]][split[1]]
@@ -102,20 +106,20 @@ def get_triples(answer, prefixes, bnodes):
                 p = get_uri(statement.predicate, prefixes, bnodes, answer)
                 o = get_uri(statement.obj, prefixes, bnodes, answer)
                 ret.append((s, p, o))
-    #elif q_type == 'check':
-    #    if answer.options:
-    #        for statement in Statement.objects.filter(question=answer.question):
-    #            if statement.choice is not None:
-    #                if statement.choice in answer.options:
-    #                    s = get_uri(statement.subject, prefixes, bnodes, answer)
-    #                    p = get_uri(statement.predicate, prefixes, bnodes, answer)
-    #                    o = get_uri(statement.obj, prefixes, bnodes, answer)
-    #                    ret.append((s, p, o))
-    #            else:
-    #                s = get_uri(statement.subject, prefixes, bnodes, answer)
-    #                p = get_uri(statement.predicate, prefixes, bnodes, answer)
-    #                o = get_uri(statement.obj, prefixes, bnodes, answer)
-    #                ret.append((s, p, o))
+    elif q_type == 'check':
+        if answer.options:
+            for statement in Statement.objects.filter(question=answer.question):
+                if statement.choice is not None:
+                    if statement.choice in answer.options.all():
+                        s = get_uri(statement.subject, prefixes, bnodes, answer)
+                        p = get_uri(statement.predicate, prefixes, bnodes, answer)
+                        o = get_uri(statement.obj, prefixes, bnodes, answer)
+                        ret.append((s, p, o))
+                else:
+                    s = get_uri(statement.subject, prefixes, bnodes, answer)
+                    p = get_uri(statement.predicate, prefixes, bnodes, answer)
+                    o = get_uri(statement.obj, prefixes, bnodes, answer)
+                    ret.append((s, p, o))
     elif q_type == 'combo':
         if answer.text:
             for statement in Statement.objects.filter(question=answer.question):
