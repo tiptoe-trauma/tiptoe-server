@@ -35,5 +35,7 @@ urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^auth/', views.obtain_auth_token),
+    url(r'^joyplot', joyplot),
+    url(r'^basic_stats', stats),
     url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 ]
