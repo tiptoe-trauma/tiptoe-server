@@ -10,6 +10,11 @@ class CategorySerializer(serializers.ModelSerializer):
 class StatSerializer(serializers.Serializer):
     same = serializers.FloatField()
 
+class CompletionSerializer(serializers.Serializer):
+    category = serializers.IntegerField()
+    total_questions = serializers.IntegerField()
+    completed_questions = serializers.IntegerField()
+
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answer

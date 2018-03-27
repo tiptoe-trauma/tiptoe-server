@@ -137,6 +137,32 @@ class OrganizationAccessPermission(permissions.BasePermission):
         self.message = "You can only modify your own organizations"
         return request.user in obj.users.all()
 
+
+class CompletionView(viewsets.ViewSet):
+    serializer_class = CompletionSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AnswerAccessPermission,)
+
+    def list(self, request):
+        data = []
+        # determine if center or system
+        try:
+            qtype = request.user.activeorganization.organization.org_type
+            for category in Category.objects.filter(questionnaire=qtype):
+                c = {}
+                c['category'] = category.id
+                questions = Question.objects.filter(category=category)
+                c['total_questions'] = len(questions)
+                answer_count = Answer.objects.filter(
+                        organization=request.user.activeorganization.organization,
+                        question__in=questions).count()
+                c['completed_questions'] = answer_count
+                data.append(c)
+            serializer = CompletionSerializer(data, many=True)
+            return Response(serializer.data)
+        except AttributeError:
+            return Response()
+
 class StatView(viewsets.ViewSet):
     serializer_class = StatSerializer
     authentication_classes = (TokenAuthentication,)

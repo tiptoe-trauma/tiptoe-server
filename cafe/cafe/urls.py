@@ -30,6 +30,7 @@ router.register(r'organization', OrganizationView)
 router.register(r'user', UserView, base_name='user')
 router.register(r'definitions', DefinitionList, base_name='d')
 router.register(r'stats', StatView, base_name='s')
+router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
     url(r'^', include(router.urls)),
