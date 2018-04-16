@@ -16,6 +16,12 @@ def get_or_zero(classmodel, **kwargs):
     except classmodel.DoesNotExist:
         return 0
 
+def get_or_none(classmodel, **kwargs):
+    try:
+        return classmodel.objects.get(**kwargs).yesno
+    except classmodel.DoesNotExist:
+        return None
+
 @api_view(['GET'])
 def stats(request):
     response = []
@@ -36,20 +42,20 @@ def joyplot(request):
     for org in Organization.objects.filter(org_type='center'):
         data = {}
         data['id'] = org.id
-        data['247_coverage'] = Answer.objects.get(organization=org, question=41).yesno
-        data['trauma_backup'] = Answer.objects.get(organization=org, question=57).yesno
-        data['trauma_backup_approved'] = Answer.objects.get(organization=org, question=213).yesno
-        data['ortho_247'] = Answer.objects.get(organization=org, question=60).yesno
-        data['ortho_liason'] = Answer.objects.get(organization=org, question=61).yesno
-        data['ortho_50_meetings'] = Answer.objects.get(organization=org, question=63).yesno
-        data['ortho_residency'] = Answer.objects.get(organization=org, question=72).yesno
-        data['ortho_fellowship'] = Answer.objects.get(organization=org, question=73).yesno
-        data['neuro_247'] = Answer.objects.get(organization=org, question=75).yesno
-        data['neuro_liason'] = Answer.objects.get(organization=org, question=76).yesno
-        data['neuro_50_meetings'] = Answer.objects.get(organization=org, question=80).yesno
-        data['neuro_residency'] = Answer.objects.get(organization=org, question=84).yesno
-        data['anesth_247'] = Answer.objects.get(organization=org, question=87).yesno
-        data['anesth_liason'] = Answer.objects.get(organization=org, question=91).yesno
+        data['247_coverage'] = get_or_none(Answer, organization=org, question=41)
+        data['trauma_backup'] = get_or_none(Answer, organization=org, question=57)
+        data['trauma_backup_approved'] = get_or_none(Answer, organization=org, question=213)
+        data['ortho_247'] = get_or_none(Answer, organization=org, question=60)
+        data['ortho_liason'] = get_or_none(Answer, organization=org, question=61)
+        data['ortho_50_meetings'] = get_or_none(Answer, organization=org, question=63)
+        data['ortho_residency'] = get_or_none(Answer, organization=org, question=72)
+        data['ortho_fellowship'] = get_or_none(Answer, organization=org, question=73)
+        data['neuro_247'] = get_or_none(Answer, organization=org, question=75)
+        data['neuro_liason'] = get_or_none(Answer, organization=org, question=76)
+        data['neuro_50_meetings'] = get_or_none(Answer, organization=org, question=80)
+        data['neuro_residency'] = get_or_none(Answer, organization=org, question=84)
+        data['anesth_247'] = get_or_none(Answer, organization=org, question=87)
+        data['anesth_liason'] = get_or_none(Answer, organization=org, question=91)
         data['general_atls_once'] = get_or_zero(Answer, organization=org, question=45)
         data['general_atls_current'] = get_or_zero(Answer, organization=org, question=46)
         data['trauma_priv'] = get_or_zero(Answer, organization=org, question=43)
