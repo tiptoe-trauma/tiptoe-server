@@ -22,6 +22,34 @@ def get_or_none(classmodel, **kwargs):
     except classmodel.DoesNotExist:
         return None
 
+def get_text_or_none(classmodel, **kwargs):
+    try:
+        return classmodel.objects.get(**kwargs).text
+    except classmodel.DoesNotExist:
+        return None
+
+def get_options_or_none(classmodel, **kwargs):
+    try:
+        return [ x.text for x in classmodel.objects.get(**kwargs).options.all() ]
+    except classmodel.DoesNotExist:
+        return None
+
+@api_view(['GET'])
+def tmd_stats(request):
+    response = {}
+    if request.user.is_authenticated():
+        org= request.user.activeorganization.organization
+        response['organization'] = org.name
+        response['medical_speciality'] = get_text_or_none(Answer, organization=org, question=137)
+        response['reporting'] = get_options_or_none(Answer, organization=org, question=138)
+        response['trauma_call'] = get_or_none(Answer, organization=org, question=14)
+        response['lead_qi'] = get_or_none(Answer, organization=org, question=15)
+        response['tpm_perf_eval'] = get_or_none(Answer, organization=org, question=19)
+        response['qualifications_trauma_panel'] = get_or_none(Answer, organization=org, question=22)
+        response['appoint_trauma_panel'] = get_or_none(Answer, organization=org, question=24)
+        response['fire_trauma_panel'] = get_or_none(Answer, organization=org, question=140)
+    return Response(response)
+
 @api_view(['GET'])
 def stats(request):
     response = []
