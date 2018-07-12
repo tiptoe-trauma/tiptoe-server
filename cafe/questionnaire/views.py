@@ -34,20 +34,27 @@ def get_options_or_none(classmodel, **kwargs):
     except classmodel.DoesNotExist:
         return None
 
+def populate_tmd_stats(org):
+    data = {}
+    data['organization'] = org.name
+    data['medical_speciality'] = get_text_or_none(Answer, organization=org, question=137)
+    data['reporting'] = get_options_or_none(Answer, organization=org, question=138)
+    data['trauma_call'] = get_or_none(Answer, organization=org, question=14)
+    data['lead_qi'] = get_or_none(Answer, organization=org, question=15)
+    data['tpm_perf_eval'] = get_or_none(Answer, organization=org, question=19)
+    data['qualifications_trauma_panel'] = get_or_none(Answer, organization=org, question=22)
+    data['appoint_trauma_panel'] = get_or_none(Answer, organization=org, question=24)
+    data['fire_trauma_panel'] = get_or_none(Answer, organization=org, question=140)
+    return data
+
 @api_view(['GET'])
 def tmd_stats(request):
-    response = {}
+    response = []
     if request.user.is_authenticated():
-        org= request.user.activeorganization.organization
-        response['organization'] = org.name
-        response['medical_speciality'] = get_text_or_none(Answer, organization=org, question=137)
-        response['reporting'] = get_options_or_none(Answer, organization=org, question=138)
-        response['trauma_call'] = get_or_none(Answer, organization=org, question=14)
-        response['lead_qi'] = get_or_none(Answer, organization=org, question=15)
-        response['tpm_perf_eval'] = get_or_none(Answer, organization=org, question=19)
-        response['qualifications_trauma_panel'] = get_or_none(Answer, organization=org, question=22)
-        response['appoint_trauma_panel'] = get_or_none(Answer, organization=org, question=24)
-        response['fire_trauma_panel'] = get_or_none(Answer, organization=org, question=140)
+        response.append(populate_tmd_stats(request.user.activeorganization.organization))
+        for org in Organization.objects.filter(org_type='center', approved=True):
+            if org != request.user.activeorganization.organization:
+                response.append(populate_tmd_stats(org))
     return Response(response)
 
 @api_view(['GET'])
@@ -63,51 +70,58 @@ def stats(request):
         response.append(data)
     return Response(response)
 
+def populate_joyplot(org):
+    data = {}
+    data['id'] = org.id
+    data['247_coverage'] = get_or_none(Answer, organization=org, question=41)
+    data['trauma_backup'] = get_or_none(Answer, organization=org, question=57)
+    data['trauma_backup_approved'] = get_or_none(Answer, organization=org, question=213)
+    data['ortho_247'] = get_or_none(Answer, organization=org, question=60)
+    data['ortho_liason'] = get_or_none(Answer, organization=org, question=61)
+    data['ortho_50_meetings'] = get_or_none(Answer, organization=org, question=63)
+    data['ortho_residency'] = get_or_none(Answer, organization=org, question=72)
+    data['ortho_fellowship'] = get_or_none(Answer, organization=org, question=73)
+    data['neuro_247'] = get_or_none(Answer, organization=org, question=75)
+    data['neuro_liason'] = get_or_none(Answer, organization=org, question=76)
+    data['neuro_50_meetings'] = get_or_none(Answer, organization=org, question=80)
+    data['neuro_residency'] = get_or_none(Answer, organization=org, question=84)
+    data['anesth_247'] = get_or_none(Answer, organization=org, question=87)
+    data['anesth_liason'] = get_or_none(Answer, organization=org, question=91)
+    data['general_atls_once'] = get_or_zero(Answer, organization=org, question=45)
+    data['general_atls_current'] = get_or_zero(Answer, organization=org, question=46)
+    data['trauma_priv'] = get_or_zero(Answer, organization=org, question=43)
+    data['trauma_panel'] = get_or_zero(Answer, organization=org, question=42)
+    data['trauma_cme'] = get_or_zero(Answer, organization=org, question=47)
+    data['trauma_board_eligible'] = get_or_zero(Answer, organization=org, question=44)
+    data['trauma_board_certified'] = get_or_zero(Answer, organization=org, question=152)
+    data['trauma_exclusive'] = get_or_zero(Answer, organization=org, question=54)
+    data['trauma_critical_certifications'] = get_or_zero(Answer, organization=org, question=58)
+    data['trauma_fellowship'] = get_or_zero(Answer, organization=org, question=59)
+    data['ortho_panel'] = get_or_zero(Answer, organization=org, question=64)
+    data['ortho_cme'] = get_or_zero(Answer, organization=org, question=62)
+    data['ortho_board_eligible'] = get_or_zero(Answer, organization=org, question=65)
+    data['ortho_board_certified'] = get_or_zero(Answer, organization=org, question=145)
+    data['ortho_exclusive'] = get_or_zero(Answer, organization=org, question=67)
+    data['neuro_panel'] = get_or_zero(Answer, organization=org, question=77)
+    data['neuro_cme'] = get_or_zero(Answer, organization=org, question=79)
+    data['neuro_board_eligible'] = get_or_zero(Answer, organization=org, question=214)
+    data['neuro_board_certified'] = get_or_zero(Answer, organization=org, question=215)
+    data['neuro_exclusive'] = get_or_zero(Answer, organization=org, question=81)
+    data['anesth_panel'] = get_or_zero(Answer, organization=org, question=93)
+    data['anesth_board_certified'] = get_or_zero(Answer, organization=org, question=216)
+    data['anesth_residency'] = get_or_zero(Answer, organization=org, question=94)
+    return data
+
 @api_view(['GET'])
 def joyplot(request):
     response = []
     # these are hardcoded values for starter survey, need to find better method
-    for org in Organization.objects.filter(org_type='center'):
-        data = {}
-        data['id'] = org.id
-        data['247_coverage'] = get_or_none(Answer, organization=org, question=41)
-        data['trauma_backup'] = get_or_none(Answer, organization=org, question=57)
-        data['trauma_backup_approved'] = get_or_none(Answer, organization=org, question=213)
-        data['ortho_247'] = get_or_none(Answer, organization=org, question=60)
-        data['ortho_liason'] = get_or_none(Answer, organization=org, question=61)
-        data['ortho_50_meetings'] = get_or_none(Answer, organization=org, question=63)
-        data['ortho_residency'] = get_or_none(Answer, organization=org, question=72)
-        data['ortho_fellowship'] = get_or_none(Answer, organization=org, question=73)
-        data['neuro_247'] = get_or_none(Answer, organization=org, question=75)
-        data['neuro_liason'] = get_or_none(Answer, organization=org, question=76)
-        data['neuro_50_meetings'] = get_or_none(Answer, organization=org, question=80)
-        data['neuro_residency'] = get_or_none(Answer, organization=org, question=84)
-        data['anesth_247'] = get_or_none(Answer, organization=org, question=87)
-        data['anesth_liason'] = get_or_none(Answer, organization=org, question=91)
-        data['general_atls_once'] = get_or_zero(Answer, organization=org, question=45)
-        data['general_atls_current'] = get_or_zero(Answer, organization=org, question=46)
-        data['trauma_priv'] = get_or_zero(Answer, organization=org, question=43)
-        data['trauma_panel'] = get_or_zero(Answer, organization=org, question=42)
-        data['trauma_cme'] = get_or_zero(Answer, organization=org, question=47)
-        data['trauma_board_eligible'] = get_or_zero(Answer, organization=org, question=44)
-        data['trauma_board_certified'] = get_or_zero(Answer, organization=org, question=152)
-        data['trauma_exclusive'] = get_or_zero(Answer, organization=org, question=54)
-        data['trauma_critical_certifications'] = get_or_zero(Answer, organization=org, question=58)
-        data['trauma_fellowship'] = get_or_zero(Answer, organization=org, question=59)
-        data['ortho_panel'] = get_or_zero(Answer, organization=org, question=64)
-        data['ortho_cme'] = get_or_zero(Answer, organization=org, question=62)
-        data['ortho_board_eligible'] = get_or_zero(Answer, organization=org, question=65)
-        data['ortho_board_certified'] = get_or_zero(Answer, organization=org, question=145)
-        data['ortho_exclusive'] = get_or_zero(Answer, organization=org, question=67)
-        data['neuro_panel'] = get_or_zero(Answer, organization=org, question=77)
-        data['neuro_cme'] = get_or_zero(Answer, organization=org, question=79)
-        data['neuro_board_eligible'] = get_or_zero(Answer, organization=org, question=214)
-        data['neuro_board_certified'] = get_or_zero(Answer, organization=org, question=215)
-        data['neuro_exclusive'] = get_or_zero(Answer, organization=org, question=81)
-        data['anesth_panel'] = get_or_zero(Answer, organization=org, question=93)
-        data['anesth_board_certified'] = get_or_zero(Answer, organization=org, question=216)
-        data['anesth_residency'] = get_or_zero(Answer, organization=org, question=94)
-        response.append(data)
+    print(request.user)
+    if request.user.is_authenticated():
+        response.append(populate_joyplot(request.user.activeorganization.organization))
+        for org in Organization.objects.filter(org_type='center', approved=True):
+            if org != request.user.activeorganization.organization:
+                response.append(populate_joyplot(org))
     return Response(response)
 
 class DefinitionList(viewsets.ViewSet):
