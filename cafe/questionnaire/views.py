@@ -9,6 +9,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view
 from rest_framework import permissions
 from questionnaire.rdf import get_definitions, run_statements, delete_context, rdf_from_organization
+from averaged_dict.average_dict import average_dict
 
 def get_or_zero(classmodel, **kwargs):
     try:
@@ -50,11 +51,13 @@ def populate_tmd_stats(org):
 @api_view(['GET'])
 def tmd_stats(request):
     response = []
+    approved = []
     if request.user.is_authenticated():
         response.append(populate_tmd_stats(request.user.activeorganization.organization))
         for org in Organization.objects.filter(org_type='center', approved=True):
             if org != request.user.activeorganization.organization:
-                response.append(populate_tmd_stats(org))
+                approved.append(populate_tmd_stats(org))
+    response.append(average_dict(approved))
     return Response(response)
 
 @api_view(['GET'])
