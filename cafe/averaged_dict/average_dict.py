@@ -70,6 +70,8 @@ def average_dict(input_dicts):
             ret[key] = average_strings(fetch(key, input_dicts))
         elif(ret_types[key] == type([])):
             ret[key] = average_string_lists(fetch(key, input_dicts))
+        elif(ret_types[key] == type(None)):
+            ret[key] = None
         else:
             raise Exception(
                     "{} type is not currently supported by average dict"

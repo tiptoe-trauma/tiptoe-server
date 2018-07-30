@@ -2,7 +2,7 @@ from average_dict import *
 from unittest import TestCase, skip
 
 class AverageDictTests(TestCase):
-    
+
     def test_should_return_same_keys(self):
         input_dict_list = [{'a':0, 'b':[], 'c':'string', 'd': True}]
         output_dict = average_dict(input_dict_list)
@@ -93,3 +93,8 @@ class AverageDictTests(TestCase):
                  {'a': ['a']},
                  {'a': ['d', 'b']}]
         self.assertEqual({'a':['a', 'b']}, average_dict(lists))
+
+    def test_average_list_of_nones(self):
+        lists = [{'a': None},
+                 {'a': None}]
+        self.assertEqual({'a': None}, average_dict(lists))

@@ -38,6 +38,7 @@ urlpatterns = [
     url(r'^auth/', views.obtain_auth_token),
     url(r'^joyplot', joyplot),
     url(r'^tmd_stats', tmd_stats),
+    url(r'^tpm_stats', tpm_stats),
     url(r'^basic_stats', stats),
     url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 ]

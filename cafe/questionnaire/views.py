@@ -29,6 +29,11 @@ def get_text_or_none(classmodel, **kwargs):
     except classmodel.DoesNotExist:
         return None
 
+def strip_definitions(text):
+    if("|" in text):
+        text = text.split("|")[1].replace("}", "")
+    return text
+
 def get_options_or_none(classmodel, **kwargs):
     try:
         return [ x.text for x in classmodel.objects.get(**kwargs).options.all() ]
@@ -58,6 +63,31 @@ def tmd_stats(request):
             if org != request.user.activeorganization.organization:
                 approved.append(populate_tmd_stats(org))
     response.append(average_dict(approved))
+    response[-1]['organization'] = "Average Approved TMD"
+    return Response(response)
+
+def populate_tpm_stats(org):
+    data = {}
+    data['organization'] = org.name
+    data['education_level'] = get_text_or_none(Answer, organization=org, question=16)
+    data['reporting'] = get_options_or_none(Answer, organization=org, question=31)
+    data['certifications'] = get_options_or_none(Answer, organization=org, question=28)
+    data['continuing_education'] = get_or_none(Answer, organization=org, question=27)
+    data['evaluating_nursing'] = get_or_none(Answer, organization=org, question=26)
+    data['coordinating_quality_improvement'] = get_or_none(Answer, organization=org, question=156)
+    return data
+
+@api_view(['GET'])
+def tpm_stats(request):
+    response = []
+    approved = []
+    if request.user.is_authenticated():
+        response.append(populate_tpm_stats(request.user.activeorganization.organization))
+        for org in Organization.objects.filter(org_type='center', approved=True):
+            if org != request.user.activeorganization.organization:
+                approved.append(populate_tpm_stats(org))
+    response.append(average_dict(approved))
+    response[-1]['organization'] = "Average Approved TPM"
     return Response(response)
 
 @api_view(['GET'])
