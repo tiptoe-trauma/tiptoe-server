@@ -148,13 +148,15 @@ def populate_joyplot(org):
 @api_view(['GET'])
 def joyplot(request):
     response = []
+    approved = []
     # these are hardcoded values for starter survey, need to find better method
     print(request.user)
     if request.user.is_authenticated():
         response.append(populate_joyplot(request.user.activeorganization.organization))
         for org in Organization.objects.filter(org_type='center', approved=True):
             if org != request.user.activeorganization.organization:
-                response.append(populate_joyplot(org))
+                approved.append(populate_joyplot(org))
+    response.append(average_dict(approved))
     return Response(response)
 
 class DefinitionList(viewsets.ViewSet):
