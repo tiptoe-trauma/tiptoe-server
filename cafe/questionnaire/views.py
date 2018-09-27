@@ -37,29 +37,17 @@ def populate_stats(org, stat_type):
 
 @api_view(['GET'])
 def tmd_stats(request):
-    response = []
-    approved = []
     if request.user.is_authenticated():
-        response.append(populate_stats(request.user.activeorganization.organization, 'tmd'))
-        for org in Organization.objects.filter(org_type='center', approved=True):
-            if org != request.user.activeorganization.organization:
-                approved.append(populate_stats(org, 'tmd'))
-    response.append(average_dict(approved))
-    response[-1]['organization'] = "Average Approved TMD"
-    return Response(response)
+        org = request.user.activeorganization.organization
+        return Response(populate_stats(org, 'tmd'))
+    return Response("TMD Problem", status=500)
 
 @api_view(['GET'])
 def tpm_stats(request):
-    response = []
-    approved = []
     if request.user.is_authenticated():
-        response.append(populate_stats(request.user.activeorganization.organization, 'tpm'))
-        for org in Organization.objects.filter(org_type='center', approved=True):
-            if org != request.user.activeorganization.organization:
-                approved.append(populate_stats(org, 'tpm'))
-    response.append(average_dict(approved))
-    response[-1]['organization'] = "Average Approved TPM"
-    return Response(response)
+        org = request.user.activeorganization.organization
+        return Response(populate_stats(org, 'tpm'))
+    return Response("TPM Problem", status=500)
 
 @api_view(['GET'])
 def api_stat(request, stat_type):
