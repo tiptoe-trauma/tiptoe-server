@@ -45,6 +45,7 @@ class Question(models.Model):
     help_text = models.CharField(max_length=500, blank=True, null=True)
     depends_on = models.ManyToManyField('Question', blank=True)
     depends_string = models.CharField(max_length=200, blank=True, null=True)
+    api_name = models.CharField(max_length=100, blank=True, null=True)
 
     dep_regex = re.compile(r"#(?P<question>\d+)\s(?P<operator>==|!=|>=|>|<|<=)\s(?P<value>'[^']+'|True|False|\d+)\s?(?P<logic>or|and|xor)*\s?")
 
@@ -139,13 +140,23 @@ class Answer(models.Model):
     class Meta:
         unique_together = ('organization', 'question')
     def eq(self, target):
-        if(target.question.q_type == 'yesno'):
+        if(target.question.q_type == 'bool'):
             return self.yesno == target.yesno
         if(target.question.q_type == 'combo'):
             return self.text == target.text
         if(target.question.q_type == 'int'):
             return self.integer == target.integer
         return False
+    def value(self):
+        if(self.question.q_type == 'bool'):
+            return self.yesno
+        if(self.question.q_type == 'combo'):
+            return self.text
+        if(self.question.q_type == 'int'):
+            return self.integer
+        if(self.question.q_type == 'check'):
+            return [ x.text for x in self.options.all() ]
+        return 'bad question type'
     def __str__(self):
         return "{} - {}".format(self.organization, self.question.id)
     def context(self):

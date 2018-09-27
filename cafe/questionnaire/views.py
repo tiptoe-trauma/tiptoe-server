@@ -13,19 +13,13 @@ from averaged_dict.average_dict import average_dict
 
 def get_or_zero(classmodel, **kwargs):
     try:
-        return classmodel.objects.get(**kwargs).integer
+        return classmodel.objects.get(**kwargs).value()
     except classmodel.DoesNotExist:
         return 0
 
 def get_or_none(classmodel, **kwargs):
     try:
-        return classmodel.objects.get(**kwargs).yesno
-    except classmodel.DoesNotExist:
-        return None
-
-def get_text_or_none(classmodel, **kwargs):
-    try:
-        return classmodel.objects.get(**kwargs).text
+        return classmodel.objects.get(**kwargs).value()
     except classmodel.DoesNotExist:
         return None
 
@@ -34,23 +28,11 @@ def strip_definitions(text):
         text = text.split("|")[1].replace("}", "")
     return text
 
-def get_options_or_none(classmodel, **kwargs):
-    try:
-        return [ x.text for x in classmodel.objects.get(**kwargs).options.all() ]
-    except classmodel.DoesNotExist:
-        return None
-
-def populate_tmd_stats(org):
+def populate_stats(org, stat_type):
     data = {}
     data['organization'] = org.name
-    data['medical_speciality'] = get_text_or_none(Answer, organization=org, question=137)
-    data['reporting'] = get_options_or_none(Answer, organization=org, question=138)
-    data['trauma_call'] = get_or_none(Answer, organization=org, question=14)
-    data['lead_qi'] = get_or_none(Answer, organization=org, question=15)
-    data['tpm_perf_eval'] = get_or_none(Answer, organization=org, question=19)
-    data['qualifications_trauma_panel'] = get_or_none(Answer, organization=org, question=22)
-    data['appoint_trauma_panel'] = get_or_none(Answer, organization=org, question=24)
-    data['fire_trauma_panel'] = get_or_none(Answer, organization=org, question=140)
+    for question in Question.objects.filter(tags__contains=stat_type):
+        data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
 @api_view(['GET'])
@@ -58,36 +40,57 @@ def tmd_stats(request):
     response = []
     approved = []
     if request.user.is_authenticated():
-        response.append(populate_tmd_stats(request.user.activeorganization.organization))
+        response.append(populate_stats(request.user.activeorganization.organization, 'tmd'))
         for org in Organization.objects.filter(org_type='center', approved=True):
             if org != request.user.activeorganization.organization:
-                approved.append(populate_tmd_stats(org))
+                approved.append(populate_stats(org, 'tmd'))
     response.append(average_dict(approved))
     response[-1]['organization'] = "Average Approved TMD"
     return Response(response)
-
-def populate_tpm_stats(org):
-    data = {}
-    data['organization'] = org.name
-    data['education_level'] = get_text_or_none(Answer, organization=org, question=16)
-    data['reporting'] = get_options_or_none(Answer, organization=org, question=31)
-    data['certifications'] = get_options_or_none(Answer, organization=org, question=28)
-    data['continuing_education'] = get_or_none(Answer, organization=org, question=27)
-    data['evaluating_nursing'] = get_or_none(Answer, organization=org, question=26)
-    data['coordinating_quality_improvement'] = get_or_none(Answer, organization=org, question=156)
-    return data
 
 @api_view(['GET'])
 def tpm_stats(request):
     response = []
     approved = []
     if request.user.is_authenticated():
-        response.append(populate_tpm_stats(request.user.activeorganization.organization))
+        response.append(populate_stats(request.user.activeorganization.organization, 'tpm'))
         for org in Organization.objects.filter(org_type='center', approved=True):
             if org != request.user.activeorganization.organization:
-                approved.append(populate_tpm_stats(org))
+                approved.append(populate_stats(org, 'tpm'))
     response.append(average_dict(approved))
     response[-1]['organization'] = "Average Approved TPM"
+    return Response(response)
+
+@api_view(['GET'])
+def api_stat(request, stat_type):
+    response = {}
+    other_orgs = []
+    certified_orgs = []
+    questions = Question.objects.filter(tags__contains=stat_type)
+    if len(questions) == 0:
+        return Response("No questions found for '{}' type".format(stat_type), status=404)
+    total_question = questions.get(tags__contains='total')
+    questions = questions.exclude(id=total_question.id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for org in Organization.objects.filter(org_type='center'):
+            stats = {}
+            total_count = get_or_zero(Answer, organization=org, question=total_question)
+            if total_count != 0:
+                for question in questions:
+                    count = get_or_none(Answer, organization=org, question=question)
+                    if count != None:
+                        stats[question.api_name] = count / total_count
+                    else:
+                        stats[question.api_name] = None
+                if org == user_org:
+                    response['user_org'] = stats
+                elif org.approved:
+                    certified_orgs.append(stats)
+                else:
+                    other_orgs.append(stats)
+    response['certified_orgs'] = average_dict(certified_orgs)
+    response['other_orgs'] = average_dict(other_orgs)
     return Response(response)
 
 @api_view(['GET'])

@@ -18,9 +18,11 @@ def dict_typing(dicts):
     return ret
 
 def average_integer(numbers):
+    numbers = list(filter(lambda x: x is not None, numbers))
     return int(sum(numbers) / len(numbers))
 
 def average_floats(numbers):
+    numbers = list(filter(lambda x: x is not None, numbers))
     return float(sum(numbers)) / float(len(numbers))
 
 def average_bools(bools):

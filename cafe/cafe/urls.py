@@ -29,7 +29,7 @@ router.register(r'answer', AnswerViewSet)
 router.register(r'organization', OrganizationView)
 router.register(r'user', UserView, base_name='user')
 router.register(r'definitions', DefinitionList, base_name='d')
-router.register(r'stats', StatView, base_name='s')
+#router.register(r'stats', StatView, base_name='s')
 router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
@@ -40,5 +40,6 @@ urlpatterns = [
     url(r'^tmd_stats', tmd_stats),
     url(r'^tpm_stats', tpm_stats),
     url(r'^basic_stats', stats),
+    url(r'^stats/(?P<stat_type>\S+)', api_stat),
     url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 ]

@@ -48,11 +48,19 @@ class AverageDictTests(TestCase):
         dicts = [{'a':2},{'a':2},{'a':4},{'a':4}]
         self.assertEqual({'a':3}, average_dict(dicts))
 
+    def test_average_dict_with_ints_and_nones(self):
+        dicts = [{'a':2},{'a':None},{'a':4},{'a':None}]
+        self.assertEqual({'a':3}, average_dict(dicts))
+
     def test_average_floats(self):
         numbers = [1.0, 1.0, 0.0, 0.0]
         self.assertEqual(.5, average_floats(numbers))
         numbers = [6.0, 1.0, 3.0, 0.0]
         self.assertEqual(2.5, average_floats(numbers))
+
+    def test_average_floats_with_nones(self):
+        numbers = [1.0, None, 0.0, None]
+        self.assertEqual(.5, average_floats(numbers))
 
     def test_average_dict_with_floats(self):
         dicts = [{'a':2.0},{'a':2.0},{'a':4.0},{'a':6.0}]
