@@ -31,7 +31,7 @@ def strip_definitions(text):
 def populate_stats(org, stat_type):
     data = {}
     data['organization'] = org.name
-    for question in Question.objects.filter(tags__contains=stat_type):
+    for question in Question.objects.filter(tags__contains=stat_type, q_type='integer'):
         data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
@@ -48,6 +48,19 @@ def tpm_stats(request):
         org = request.user.activeorganization.organization
         return Response(populate_stats(org, 'tpm'))
     return Response("TPM Problem", status=500)
+
+@api_view(['GET'])
+def api_policy(request, speciality):
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        response = {}
+        for question in Question.objects.filter(tags__contains=speciality,
+                                                q_type="bool"):
+            response[question.api_name] = get_or_none(Answer,
+                                                      organization=user_org,
+                                                      question=question)
+        return Response(response)
+    return Response("Must be logged in", status=404)
 
 @api_view(['GET'])
 def api_stat(request, stat_type):

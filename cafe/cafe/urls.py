@@ -41,5 +41,6 @@ urlpatterns = [
     url(r'^tpm_stats', tpm_stats),
     url(r'^basic_stats', stats),
     url(r'^stats/(?P<stat_type>\S+)', api_stat),
+    url(r'^policies/(?P<speciality>\S+)', api_policy),
     url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 ]
