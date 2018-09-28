@@ -31,7 +31,7 @@ def strip_definitions(text):
 def populate_stats(org, stat_type):
     data = {}
     data['organization'] = org.name
-    for question in Question.objects.filter(tags__contains=stat_type, q_type='integer'):
+    for question in Question.objects.filter(tags__contains=stat_type):
         data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
