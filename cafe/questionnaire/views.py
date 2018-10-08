@@ -67,7 +67,7 @@ def api_stat(request, stat_type):
     response = {}
     other_orgs = []
     certified_orgs = []
-    questions = Question.objects.filter(tags__contains=stat_type)
+    questions = Question.objects.filter(tags__contains=stat_type, q_type="int")
     if len(questions) == 0:
         return Response("No questions found for '{}' type".format(stat_type), status=404)
     total_question = questions.get(tags__contains='total')
