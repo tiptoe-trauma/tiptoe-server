@@ -116,7 +116,7 @@ class Option(models.Model):
         return self.text
 
 class Organization(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, blank=True)
     users = models.ManyToManyField(User)
     org_type = models.CharField(max_length=6)
     approved = models.BooleanField(default=False)

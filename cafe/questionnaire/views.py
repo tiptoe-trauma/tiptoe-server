@@ -35,6 +35,21 @@ def populate_stats(org, stat_type):
         data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
+@api_view(['POST'])
+def create_web_user(request, questionnaire_type):
+    if request.user.is_authenticated():
+        return Response("Must be logged out to create new user", status=500)
+    if questionnaire_type not in ['center', 'system']:
+        return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
+    user_count = User.objects.count()
+    user = User.objects.create(username='web' + str(user_count))
+    token = Token.objects.get(user=user)
+    org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
+    org.users.add(user)
+    org.save()
+    ActiveOrganization.objects.create(user=user, organization=org)
+    return Response({'token': token.key})
+
 @api_view(['GET'])
 def tmd_stats(request):
     if request.user.is_authenticated():
@@ -172,6 +187,11 @@ class DefinitionList(viewsets.ViewSet):
 class CategoryList(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by('order')
     serializer_class = CategorySerializer
+
+    def list(self, request):
+        serializer = self.get_serializer(self.queryset, many=True)
+        return Response(serializer.data)
+
 
 class QuestionList(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.all()
