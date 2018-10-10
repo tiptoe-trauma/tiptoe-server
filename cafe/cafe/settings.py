@@ -144,3 +144,6 @@ STATIC_ROOT = '/usr/share/nginx/html/static'
 
 # This is the base URL that the site will be located, currently used for RDF requests
 BASE_URL = 'https://dev.cafe-trauma.com/'
+
+EMAIL_HOST = ''
+EMAIL_PORT = 25

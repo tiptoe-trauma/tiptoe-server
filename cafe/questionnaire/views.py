@@ -1,4 +1,6 @@
 from questionnaire.models import *
+import json
+from django.conf import settings
 from questionnaire.serializers import *
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
@@ -10,6 +12,7 @@ from rest_framework.decorators import api_view
 from rest_framework import permissions
 from questionnaire.rdf import get_definitions, run_statements, delete_context, rdf_from_organization
 from averaged_dict.average_dict import average_dict
+from django.core.mail import send_mail
 
 def get_or_zero(classmodel, **kwargs):
     try:
@@ -35,20 +38,78 @@ def populate_stats(org, stat_type):
         data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
+def send_login_email(user):
+    token = Token.objects.get(user=user).key
+    login_url = '{}login/?token={}'.format(settings.BASE_URL, token)
+    if(settings.EMAIL_HOST):
+        email_message = "Here is your login URL for cafe\n\n{}".format(login_url)
+        send_mail(
+            'CAFE Trauma Login',
+            email_message,
+            'cafetrauma@uams.edu',
+            [user.email],
+            fail_silently=False,
+        )
+    else:
+        print(login_url)
+
+@api_view(['POST'])
+def retrieve_user(request):
+    body = json.loads(request.body.decode('utf-8'))
+    email = body.get('email')
+    try:
+        user = User.objects.get(email=email)
+        send_login_email(user)
+        return Response("Email Sent")
+    except User.DoesNotExist:
+        return Response("No matching email found", status=404)
+    return Response("Server Error", status=500)
+
+@api_view(['POST'])
+def token_login(request):
+    body = json.loads(request.body.decode('utf-8'))
+    login_token = body.get('login_token')
+    try:
+        # TODO: Switch to a token table instead of just emailing the actual tokens
+        token = Token.objects.get(key=login_token)
+        return Response({'token': token.key})
+    except Token.DoesNotExist:
+        return Response("Invalid login token", status=404)
+    return Response("Server Error", status=500)
+
 @api_view(['POST'])
 def create_web_user(request, questionnaire_type):
     if request.user.is_authenticated():
         return Response("Must be logged out to create new user", status=500)
     if questionnaire_type not in ['center', 'system']:
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
+    body = json.loads(request.body.decode('utf-8'))
+    email = body.get('email')
     user_count = User.objects.count()
     user = User.objects.create(username='web' + str(user_count))
+    if email:
+        user.email = email
+        user.save()
     token = Token.objects.get(user=user)
     org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
     org.users.add(user)
     org.save()
     ActiveOrganization.objects.create(user=user, organization=org)
     return Response({'token': token.key})
+
+@api_view(['POST'])
+def update_email(request):
+    if request.user.is_authenticated():
+        body = json.loads(request.body.decode('utf-8'))
+        email = body.get('email')
+        if email:
+            request.user.email = email
+            request.user.save()
+            serializer = UserSerializer(request.user)
+            return Response(serializer.data)
+        return Response("No Email Provided", status=500)
+    return Response("Must be logged in", status=401)
+
 
 @api_view(['GET'])
 def tmd_stats(request):
@@ -75,7 +136,7 @@ def api_policy(request, speciality):
                                                       organization=user_org,
                                                       question=question)
         return Response(response)
-    return Response("Must be logged in", status=404)
+    return Response("Must be logged in", status=402)
 
 @api_view(['GET'])
 def api_stat(request, stat_type):
