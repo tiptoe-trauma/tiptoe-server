@@ -77,6 +77,9 @@ def token_login(request):
         return Response("Invalid login token", status=404)
     return Response("Server Error", status=500)
 
+def unique_email(email):
+    return User.objects.filter(email=email).count() == 0
+
 @api_view(['POST'])
 def create_web_user(request, questionnaire_type):
     if request.user.is_authenticated():
@@ -85,6 +88,8 @@ def create_web_user(request, questionnaire_type):
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
     body = json.loads(request.body.decode('utf-8'))
     email = body.get('email')
+    if(not unique_email(email)):
+        return Response("Email must be unique", status=500)
     user_count = User.objects.count()
     user = User.objects.create(username='web' + str(user_count))
     if email:
@@ -102,6 +107,8 @@ def update_email(request):
     if request.user.is_authenticated():
         body = json.loads(request.body.decode('utf-8'))
         email = body.get('email')
+        if(not unique_email(email)):
+            return Response("Email must be unique", status=500)
         if email:
             request.user.email = email
             request.user.save()
