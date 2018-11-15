@@ -24,9 +24,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.cafe-trauma.com', 'localhost', '127.0.0.1', '[::1]']
 
 
 # Application definition
@@ -95,7 +95,7 @@ DATABASES = {
         'NAME': 'cafe',
         'USER': 'cafeuser',
         'PASSWORD': 'inmelet1',
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': '',
     }
 }
@@ -145,5 +145,5 @@ STATIC_ROOT = '/usr/share/nginx/html/static'
 # This is the base URL that the site will be located, currently used for RDF requests
 BASE_URL = 'https://dev.cafe-trauma.com/'
 
-EMAIL_HOST = ''
+EMAIL_HOST = 'mail.uams.edu'
 EMAIL_PORT = 25
