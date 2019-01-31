@@ -39,8 +39,8 @@ class Command(BaseCommand):
         prefix = RDFPrefix.objects.get(short=p)
         full_uri = uri
         if(prefix):
-            full_uri = prefix.full.format(specific)
-        url = "http://localhost:8080/rdf4j-server/repositories/cafe/statements?subj={}".format(full_uri)
+            full_uri = prefix.full + specific
+        url = "http://localhost:8080/rdf4j-server/repositories/cafe/statements?subj=<{}>".format(full_uri)
         label = 'http://www.w3.org/2000/01/rdf-schema#label'
         r = requests.get(url, headers=headers)
         if r.ok:
