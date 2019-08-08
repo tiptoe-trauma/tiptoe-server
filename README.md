@@ -7,6 +7,7 @@ The short version and some project specific things are.
 * (optionally) Create a python3 virtualenv and activate it
 * `pip install -r requirements.txt`
 * Update `cafe/cafe/settings.py`
+* `export SECRET_KEY=something_secret_here`
 * `./manage syncdb`
 * `./manage createsuperuser`
 * `./manage runserver`
