@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+import django_heroku
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,8 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -152,3 +152,6 @@ BASE_URL = 'https://dev.cafe-trauma.com/'
 
 EMAIL_HOST = 'mail.uams.edu'
 EMAIL_PORT = 25
+
+# Activate Django-Heroku.
+django_heroku.settings(locals())
