@@ -19,6 +19,10 @@ from questionnaire.views import *
 from rest_framework import routers
 from rest_framework.authtoken import views
 
+from django.contrib.staticfiles.views import serve
+from django.views.generic import RedirectView
+
+
 admin.autodiscover()
 
 router = routers.DefaultRouter()
@@ -34,7 +38,7 @@ router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
     url(r'^$', serve,
-        kwargs={'path': '/static/index.html'}),
+        kwargs={'path': 'index.html'}),
     url(r'^api/', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^api/auth/', views.obtain_auth_token),
@@ -49,4 +53,8 @@ urlpatterns = [
     url(r'^api/stats/(?P<stat_type>\S+)', api_stat),
     url(r'^api/policies/(?P<speciality>\S+)', api_policy),
     url(r'^api/rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
+
+    url(r'^(?!/static/.*)(?P<path>.*\..*)$',
+        RedirectView.as_view(url='/static/%(path)s')),
+
 ]
