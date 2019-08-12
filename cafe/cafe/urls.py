@@ -33,6 +33,8 @@ router.register(r'definitions', DefinitionList, base_name='d')
 router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
+    url(r'^$', serve,
+        kwargs={'path': '/static/index.html'}),
     url(r'^api/', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^api/auth/', views.obtain_auth_token),
