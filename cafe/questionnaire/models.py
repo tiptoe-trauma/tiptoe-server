@@ -197,7 +197,8 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
 
-@receiver(post_save, sender=Statement)
-def generate_graphs(sender, instance=None, created=False, **kwargs):
-    if instance:
-        call_command('generate_graphs', str(instance.question.id), verbosity=0)
+# Does not work in heroku
+# @receiver(post_save, sender=Statement)
+# def generate_graphs(sender, instance=None, created=False, **kwargs):
+#     if instance:
+#         call_command('generate_graphs', str(instance.question.id), verbosity=0)
