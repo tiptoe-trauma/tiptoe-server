@@ -156,8 +156,10 @@ WHITENOISE_INDEX_FILE = True
 # This is the base URL that the site will be located, currently used for RDF requests
 BASE_URL = 'https://dev.cafe-trauma.com/'
 
-EMAIL_HOST = 'mail.uams.edu'
-EMAIL_PORT = 25
+EMAIL_HOST = os.environ.get('MAILGUN_SMTP_SERVER', '')
+EMAIL_PORT = os.environ.get('MAILGUN_SMTP_PORT', '')
+EMAIL_HOST_USER = os.environ.get('MAILGUN_SMTP_LOGIN', '')
+EMAIL_HOST_PASSWORD = os.environ.get('MAILGUN_SMTP_PASSWORD', '')
 
 # Activate Django-Heroku.
 django_heroku.settings(locals())
