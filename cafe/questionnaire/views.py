@@ -38,9 +38,9 @@ def populate_stats(org, stat_type):
         data[question.api_name] = get_or_none(Answer, organization=org, question=question)
     return data
 
-def send_login_email(user):
+def send_login_email(request, user):
     token = Token.objects.get(user=user).key
-    login_url = '{}login/?token={}'.format(settings.BASE_URL, token)
+    login_url = '{}/login/?token={}'.format(request.get_host(), token)
     if(settings.EMAIL_HOST):
         email_message = "Here is your login URL for cafe\n\n{}".format(login_url)
         send_mail(
@@ -59,7 +59,7 @@ def retrieve_user(request):
     email = body.get('email')
     try:
         user = User.objects.get(email=email)
-        send_login_email(user)
+        send_login_email(request, user)
         return Response("Email Sent")
     except User.DoesNotExist:
         return Response("No matching email found", status=404)

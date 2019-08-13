@@ -154,7 +154,7 @@ STATICFILES_DIRS = (
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_INDEX_FILE = True
 # This is the base URL that the site will be located, currently used for RDF requests
-BASE_URL = 'https://dev.cafe-trauma.com/'
+TRIPLESTORE_URL = 'https://dev.cafe-trauma.com/'
 
 EMAIL_HOST = os.environ.get('MAILGUN_SMTP_SERVER', '')
 EMAIL_PORT = os.environ.get('MAILGUN_SMTP_PORT', '')
