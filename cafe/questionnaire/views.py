@@ -40,7 +40,7 @@ def populate_stats(org, stat_type):
 
 def send_login_email(request, user):
     token = Token.objects.get(user=user).key
-    login_url = '{}/login/?token={}'.format(request.get_host(), token)
+    login_url = 'https://{}/?token={}'.format(request.get_host(), token)
     if(settings.EMAIL_HOST):
         email_message = "Here is your login URL for cafe\n\n{}".format(login_url)
         send_mail(
