@@ -1,2 +1,5 @@
 env/
 *.pyc
+*.sql
+cafe/graphs/*.dot
+cafe/static_graphs/*.png
