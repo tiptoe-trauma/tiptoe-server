@@ -54,6 +54,8 @@ urlpatterns = [
     url(r'^api/policies/(?P<speciality>\S+)', api_policy),
     url(r'^api/rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 
+    url(r'^(?!/graphs/.*)(?P<path>.*\..*)$',
+        RedirectView.as_view(url='/static/%(path)s')),
     url(r'^(?!/static/.*)(?P<path>.*\..*)$',
         RedirectView.as_view(url='/static/%(path)s')),
 
