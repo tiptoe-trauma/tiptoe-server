@@ -24,9 +24,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['.cafe-trauma.com', 'localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS = ['cafe-trauma.herokuapp.com',
+                 '.cafe-trauma.com',
+                 'localhost',
+                 '127.0.0.1',
+                 '[::1]']
 
 
 # Application definition
@@ -147,6 +151,7 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'angular'),
 )
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_INDEX_FILE = True
 # This is the base URL that the site will be located, currently used for RDF requests
 BASE_URL = 'https://dev.cafe-trauma.com/'
 
