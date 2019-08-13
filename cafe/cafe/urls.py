@@ -22,8 +22,6 @@ from rest_framework.authtoken import views
 from django.contrib.staticfiles.views import serve
 from django.views.generic import RedirectView
 
-from django.conf.urls.static import static
-
 
 admin.autodiscover()
 
@@ -63,4 +61,4 @@ urlpatterns = [
 
     url(r'^(?!(/static/|/graphs/).*)(?P<path>.*\..*)$',
         RedirectView.as_view(url='/static/%(path)s')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
