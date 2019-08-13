@@ -197,7 +197,6 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
 
-Does not work in heroku
 @receiver(post_save, sender=Statement)
 def generate_graphs(sender, instance=None, created=False, **kwargs):
     if instance:
