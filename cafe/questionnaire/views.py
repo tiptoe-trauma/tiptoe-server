@@ -46,7 +46,7 @@ def send_login_email(request, user):
         send_mail(
             'CAFE Trauma Login',
             email_message,
-            'cafetrauma@uams.edu',
+            'questionnaire_retrieval@cafe-trauma.com',
             [user.email],
             fail_silently=False,
         )
