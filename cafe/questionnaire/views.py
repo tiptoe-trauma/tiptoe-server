@@ -63,6 +63,8 @@ def retrieve_user(request):
         return Response("Email Sent")
     except User.DoesNotExist:
         return Response("No matching email found", status=404)
+    except:
+        return Response("Email sending failed, please contact site owner", status=500)
     return Response("Server Error", status=500)
 
 @api_view(['POST'])
