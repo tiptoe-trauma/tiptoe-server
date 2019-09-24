@@ -39,8 +39,6 @@ router.register(r'completion', CompletionView, base_name='cv')
 urlpatterns = [
     url(r'^$', serve,
         kwargs={'path': 'index.html'}),
-    url(r'^/$', serve,
-        kwargs={'path': 'index.html'}),
     url(r'^questionnaire/', serve,
         kwargs={'path': 'index.html'}),
     url(r'^user/', serve,
