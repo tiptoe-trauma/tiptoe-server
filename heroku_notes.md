@@ -4,4 +4,4 @@ If CAFE needs to be transitioned back to a traditional server environment the se
 
 To continue development in the Heroku style any changes to the angular app needs to be compiled and moved over to the cafe/angular directory before being pushed to heroku. Mathias owns the Heroku account the app is hosted from so a new developer should be able to easily link their development environment to it using the `heroku remote:add -a cafe-trauma` command.
 
-The app should be largely stable and should only need to have its library versions upgraded for security reasons.
+The app should be largely stable and should only need to have its library versions upgraded for security reasons. It currently has the domain http://app.cafe-trauma.com pointed to it.
