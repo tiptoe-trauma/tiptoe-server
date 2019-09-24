@@ -24,10 +24,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['cafe-trauma.herokuapp.com',
-                 '.cafe-trauma.com',
+                 'app.cafe-trauma.com',
                  'localhost',
                  '127.0.0.1',
                  '[::1]']
