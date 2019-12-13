@@ -25,8 +25,7 @@ SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cafe-trauma.herokuapp.com',
-                 'app.cafe-trauma.com',
+ALLOWED_HOSTS = ['.cafe-trauma.com',
                  'localhost',
                  '127.0.0.1',
                  '[::1]']
@@ -89,18 +88,18 @@ WSGI_APPLICATION = 'cafe.wsgi.application'
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 DATABASES = {
-    #'default': {
-    #    'ENGINE': 'django.db.backends.sqlite3',
-    #    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    #}
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cafe',
-        'USER': 'cafeuser',
-        'PASSWORD': 'inmelet1',
-        'HOST': '127.0.0.1',
-        'PORT': '',
+       'ENGINE': 'django.db.backends.sqlite3',
+       'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #     'NAME': 'cafe',
+    #     'USER': 'cafeuser',
+    #     'PASSWORD': 'inmelet1',
+    #     'HOST': '127.0.0.1',
+    #     'PORT': '',
+    # }
 }
 
 
@@ -141,7 +140,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = '/usr/share/nginx/html/static'
 STATIC_URL = '/static/'
 
 # Extra places for collectstatic to find static files.

@@ -19,10 +19,6 @@ from questionnaire.views import *
 from rest_framework import routers
 from rest_framework.authtoken import views
 
-from django.contrib.staticfiles.views import serve
-from django.views.generic import RedirectView
-
-
 admin.autodiscover()
 
 router = routers.DefaultRouter()
@@ -37,28 +33,19 @@ router.register(r'definitions', DefinitionList, base_name='d')
 router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
-    url(r'^$', serve,
-        kwargs={'path': 'index.html'}),
-    url(r'^questionnaire/', serve,
-        kwargs={'path': 'index.html'}),
-    url(r'^user/', serve,
-        kwargs={'path': 'index.html'}),
-
-    url(r'^api/', include(router.urls)),
+    url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
-    url(r'^api/auth/', views.obtain_auth_token),
-    url(r'^api/joyplot', joyplot),
-    url(r'^api/tmd_stats', tmd_stats),
-    url(r'^api/tpm_stats', tpm_stats),
-    url(r'^api/basic_stats', stats),
-    url(r'^api/create_user/(?P<questionnaire_type>\S+)', create_web_user),
-    url(r'^api/update_email', update_email),
-    url(r'^api/retrieve_user', retrieve_user),
-    url(r'^api/token_login/', token_login),
-    url(r'^api/stats/(?P<stat_type>\S+)', api_stat),
-    url(r'^api/policies/(?P<speciality>\S+)', api_policy),
-    url(r'^api/rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
+    url(r'^auth/', views.obtain_auth_token),
+    url(r'^joyplot', joyplot),
+    url(r'^tmd_stats', tmd_stats),
+    url(r'^tpm_stats', tpm_stats),
+    url(r'^basic_stats', stats),
+    url(r'^create_user/(?P<questionnaire_type>\S+)', create_web_user),
+    url(r'^update_email', update_email),
+    url(r'^retrieve_user', retrieve_user),
+    url(r'^token_login/', token_login),
+    url(r'^stats/(?P<stat_type>\S+)', api_stat),
+    url(r'^policies/(?P<speciality>\S+)', api_policy),
+    url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
 
-    url(r'^(?!(/static/|/graphs/).*)(?P<path>.*\..*)$',
-        RedirectView.as_view(url='/static/%(path)s')),
 ]
