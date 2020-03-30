@@ -6,8 +6,10 @@ from rdflib import Graph, BNode, URIRef, Literal, Namespace
 def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <file://full_oostt.owl>
     WHERE {
       ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
