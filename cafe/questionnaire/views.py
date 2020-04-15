@@ -423,11 +423,11 @@ class AnswerViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question']).delete()
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
-        #self.run_rdf(instance)
+        self.run_rdf(instance)
 
     def perform_update(self, serializer):
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
-        #self.run_rdf(instance)
+        self.run_rdf(instance)
 
     def run_rdf(self, instance):
         if instance.question.q_type == 'bool':
