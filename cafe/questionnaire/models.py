@@ -188,7 +188,7 @@ class RDFPrefix(models.Model):
     short = models.CharField(max_length=10)
     full = models.CharField(max_length=255)
     def __str__(self):
-        return "{}:{}".format(self.short, self.full)
+        return "<{}:{}>".format(self.short, self.full)
 
 
 # Create user tokens
