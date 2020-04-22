@@ -452,8 +452,8 @@ class AnswerViewSet(viewsets.ModelViewSet):
                         p = self.parse(statement.predicate, instance)
                         o = self.parse(statement.obj, instance)
                         statements.append((s, p, o))
-                    elif statement.choice in instance.options:
-                        print('choice ' + statement)
+                    elif statement.choice in instance.options.all():
+                        print('choice ' + str(statement))
                         s = self.parse(statement.subject, instance)
                         p = self.parse(statement.predicate, instance)
                         o = self.parse(statement.obj, instance)
@@ -467,8 +467,11 @@ class AnswerViewSet(viewsets.ModelViewSet):
         if pre == '_':
             return statement
         prefix = RDFPrefix.objects.get(short=pre).full
-        partial_statement = prefix.format(uri)
-        return partial_statement.format(user=answer.organization.id)
+        if uri:
+            partial_statement = prefix + uri
+        else:
+            partial_statement = prefix
+        return '<' + partial_statement.format(user=answer.organization.id) + '>'
 
 class RDFView(APIView):
     authentication_classes = (TokenAuthentication,)
