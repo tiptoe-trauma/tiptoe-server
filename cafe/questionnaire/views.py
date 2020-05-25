@@ -192,6 +192,43 @@ def stats(request):
         response.append(data)
     return Response(response)
 
+@api_view(['GET'])
+def api_percent_yes(request, web_category):
+    print(web_category)
+    category = web_category.replace('_', ' ')
+    print(category)
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    # if request.user.is_authenticated():
+    if 1 == 1:
+        # user_org = request.user.activeorganization.organization
+        for question in questions:
+            response[question.id] = {'q_text': question.text}
+            answers = Answer.objects.filter(question_id__exact=question.id)
+            # total = len(answers) - 1
+            total = len(answers)
+            trues = 0
+            for answer in answers:
+                if answer.yesno:
+                    trues += 1
+            response[question.id]['percent_yes'] = round((trues/total) * 100)
+                # if answer not in response[question].keys():
+                #     response[question][answer] = {'certified': 0, 'other': 0}
+                # org_id = answer.organization_id
+                # if user_org == org_id:
+                #     continue
+                # elif Organization.objects.filter(id__exact=org_id)[0].approved:
+                #     response[question][answer]['certified'] += 1
+                # else:
+                #     response[question][answer]['other'] += 1
+    print("Response:")
+    print(response)
+    return Response(response)
+
+
 def populate_joyplot(org):
     data = {}
     data['id'] = org.id
