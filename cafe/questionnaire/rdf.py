@@ -11,7 +11,7 @@ PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT DISTINCT ?term ?userdef ?otherdef
     WHERE {
-      ?class rdf:type owl:Class .
+    #   ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
       optional {?class obo:OOSTT_00000030 ?userdef . }
       optional {?class obo:IAO_0000115 ?otherdef . }
