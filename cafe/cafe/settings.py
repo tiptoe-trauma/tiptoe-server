@@ -25,7 +25,8 @@ SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.cafe-trauma.com',
+ALLOWED_HOSTS = ['cafe-trauma.com',
+                 '.cafe-trauma.com',
                  'localhost',
                  '127.0.0.1',
                  '[::1]']
