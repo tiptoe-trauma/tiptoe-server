@@ -90,6 +90,7 @@ def create_web_user(request, questionnaire_type):
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
     body = json.loads(request.body.decode('utf-8'))
     email = body.get('email')
+    name = body.get('name')
     if(not unique_email(email)):
         return Response("Email must be unique", status=500)
     user_count = User.objects.count()
@@ -98,7 +99,10 @@ def create_web_user(request, questionnaire_type):
         user.email = email
         user.save()
     token = Token.objects.get(user=user)
-    org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
+    if name:
+        org = Organization.objects.create(name=name, org_type=questionnaire_type)
+    else:
+        org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
     org.users.add(user)
     org.save()
     ActiveOrganization.objects.create(user=user, organization=org)
