@@ -163,6 +163,7 @@ def api_stat(request, stat_type):
     questions = questions.exclude(id=total_question.id)
     if request.user.is_authenticated():
         user_org = request.user.activeorganization.organization
+        # import pdb; pdb.set_trace()
         for org in Organization.objects.filter(org_type='center'):
             stats = {}
             total_count = get_or_zero(Answer, organization=org, question=total_question)
@@ -181,6 +182,7 @@ def api_stat(request, stat_type):
                     other_orgs.append(stats)
     response['certified_orgs'] = average_dict(certified_orgs)
     response['other_orgs'] = average_dict(other_orgs)
+    print(response)
     return Response(response)
 
 @api_view(['GET'])
@@ -197,7 +199,70 @@ def stats(request):
     return Response(response)
 
 @api_view(['GET'])
+def api_category_responses(request, web_category):
+    # Get all responses to all questions in a given category
+    category = web_category.replace('_', ' ')
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization_id
+        for question in questions:
+            answers = Answer.objects.filter(question_id__exact=question.id)
+            response[question.id] = {'q_text': question.text,
+                                    'questionnaire': questionnaire,
+                                    'order': question.order,
+                                    'total': len(answers)}
+
+            answer_type = ''
+            for answer in answers:
+                org_id = answer.organization_id
+                if not answer_type:
+                    if answer.yesno is not None:
+                        answer_type = "yesno"
+                    elif answer.integer:
+                        answer_type = "number"
+                    elif answer.text:
+                        answer_type = "text"
+                    elif answer.options.values():
+                        answer_type = "options"
+                
+                if answer_type == "yesno":
+                    if answer.yesno:
+                        try:
+                            response[question.id]['trues'] += 1
+                        except KeyError:
+                            response[question.id]['trues'] = 1
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = answer.yesno
+                elif answer_type == "number":
+                    try:
+                        response[question.id]['numbers'].append(answer.integer)
+                    except KeyError:
+                        response[question.id]['numbers'] = [answer.integer]
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = answer.integer
+                elif answer_type == "options":
+                    if 'options' not in response[question.id].keys():
+                        response[question.id]['options'] = {}
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = []
+                    for option in answer.options.values():
+                        if option['text'] not in response[question.id]['options'].keys():
+                            response[question.id]['options'][option['text']] = 0
+                        else:
+                            response[question.id]['options'][option['text']] += 1
+                        if user_org == org_id:
+                            response[question.id]['active_answer'].append(option['text'])
+    return Response(response)
+
+
+
+@api_view(['GET'])
 def api_percent_yes(request, web_category):
+    # For gathering responses whose type is boolean
     category = web_category.replace('_', ' ')
     response = {}
     cat_list = Category.objects.filter(name__exact=category)
@@ -208,17 +273,62 @@ def api_percent_yes(request, web_category):
     if request.user.is_authenticated():
         user_org = request.user.activeorganization.organization
         for question in questions:
+            import pdb; pdb.set_trace()
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire}
             answers = Answer.objects.filter(question_id__exact=question.id)
             total = len(answers)
             trues = 0
             for answer in answers:
                 org_id = answer.organization_id
-                if user_org == org_id:
-                    total -= 1
-                elif answer.yesno:
+                if answer.yesno:
                     trues += 1
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = answer.yesno
             response[question.id]['percent_yes'] = round((trues/total) * 100)
+    return Response(response)
+
+@api_view(['GET'])
+def api_numbers(request, web_category):
+    # For gathering responses whose type is integers
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for question in questions:
+            response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
+            answers = Answer.objects.filter(question_id__exact=question_id)
+            for answer in answers:
+                org_id = answer.organization_id
+                if answer.integer:
+                    response[question.id]['answers'].append(answer.integer)
+                    if user_org == org_id:
+                       response[question.id]['active_answer'] = answer.integer
+    return Response(response)
+
+@api_view(['GET'])
+def api_multichoice(request, web_category):
+    # For gathering responses with multichoice answers
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for question in questions:
+            response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
+            answers = Answer.objects.filter(question_id__exact=question_id)
+            for answer in answers:
+                org_id = answer.organization_id
+                if answer.integer:
+                    response[question.id]['answers'].append(answer.integer)
+                    if user_org == org_id:
+                       response[question.id]['active_answer'] = answer.integer
     return Response(response)
 
 
