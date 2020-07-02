@@ -40,7 +40,7 @@ def populate_stats(org, stat_type):
 
 def send_login_email(request, user):
     token = Token.objects.get(user=user).key
-    login_url = 'http://{}/?token={}'.format(request.get_host(), token)
+    login_url = '{}?token={}'.format(settings.BASE_URL, token)
     if(settings.EMAIL_HOST):
         email_message = "Here is your login URL for cafe\n\n{}".format(login_url)
         send_mail(
@@ -244,6 +244,21 @@ def api_category_responses(request, web_category):
                         response[question.id]['numbers'] = [answer.integer]
                     if user_org == org_id:
                         response[question.id]['active_answer'] = answer.integer
+                elif answer_type == "text":
+                #     # import pdb; pdb.set_trace()
+                    if 'options' not in response[question.id].keys():
+                        response[question.id]['options'] = {}
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = []
+                    if answer.text:
+                        if answer.text not in response[question.id]['options'].keys():
+                            response[question.id]['options'][answer.text] = 1
+                            print(response[question.id]['options'][answer.text])
+                        else:
+                            response[question.id]['options'][answer.text] += 1
+                            print(response[question.id]['options'][answer.text])
+                        if user_org == org_id:
+                            response[question.id]['active_answer'].append(answer.text)
                 elif answer_type == "options":
                     if 'options' not in response[question.id].keys():
                         response[question.id]['options'] = {}
@@ -251,7 +266,7 @@ def api_category_responses(request, web_category):
                         response[question.id]['active_answer'] = []
                     for option in answer.options.values():
                         if option['text'] not in response[question.id]['options'].keys():
-                            response[question.id]['options'][option['text']] = 0
+                            response[question.id]['options'][option['text']] = 1
                         else:
                             response[question.id]['options'][option['text']] += 1
                         if user_org == org_id:
