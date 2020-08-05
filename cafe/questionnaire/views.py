@@ -236,7 +236,12 @@ def api_category_responses(request, web_category):
                         except KeyError:
                             response[question.id]['trues'] = 1
                     if user_org == org_id:
-                        response[question.id]['active_answer'] = answer.yesno
+                        if answer.integer == -1:
+                            response[question.id]['active_answer'] = False
+                        else:
+                            response[question.id]['active_answer'] = answer.yesno
+                    if answer.integer == -1:
+                        response[question.id]['total'] -= 1
                 elif answer_type == "number":
                     try:
                         response[question.id]['numbers'].append(answer.integer)
