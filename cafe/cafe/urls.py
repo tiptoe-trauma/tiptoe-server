@@ -49,5 +49,6 @@ urlpatterns = [
     url(r'^rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
     url(r'^percent_yes/(?P<web_category>\S+)', api_percent_yes),
     url(r'^answers/(?P<web_category>\S+)', api_category_responses),
+    url(r'^run_query/$', run_unique_query),
 
 ]

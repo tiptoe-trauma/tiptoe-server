@@ -8,9 +8,9 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
-from questionnaire.rdf import get_definitions, run_statements, delete_context, rdf_from_organization
+from questionnaire.rdf import get_definitions, run_query, run_statements, delete_context, rdf_from_organization
 from averaged_dict.average_dict import average_dict
 from django.core.mail import send_mail
 
@@ -358,6 +358,13 @@ def api_multichoice(request, web_category):
                        response[question.id]['active_answer'] = answer.integer
     return Response(response)
 
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def run_unique_query(request):
+    query = request.GET.get('query')
+    res = run_query(query)
+    print(res)
+    return Response(res)
 
 def populate_joyplot(org):
     data = {}
@@ -588,15 +595,16 @@ class AnswerViewSet(viewsets.ModelViewSet):
             return Response()
 
     def perform_create(self, serializer):
+        old_answer = Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question'])
         Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question']).delete()
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
-        self.run_rdf(instance)
+        self.run_rdf(instance, old_answer)
 
     def perform_update(self, serializer):
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
         self.run_rdf(instance)
 
-    def run_rdf(self, instance):
+    def run_rdf(self, instance, old_answer=None):
         if instance.question.q_type == 'bool':
             if instance.yesno == True:
                 statements = []
@@ -628,11 +636,44 @@ class AnswerViewSet(viewsets.ModelViewSet):
                 run_statements(statements, instance.context())
             else:
                 delete_context(instance.context())
+        elif instance.question.q_type == 'combo':
+            statements = []
+            delete_context(instance.context())
+            if instance.value():
+                for statement in Statement.objects.filter(question=instance.question):
+                    if statement.choice is None:
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                    elif statement.choice.text == instance.value():
+                        print('choice ' + str(statement))
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                run_statements(statements, instance.context())
+        elif instance.question.q_type == 'int':
+            if instance.integer:
+                statements = []
+                delete_context(instance.context())
+                for statement in Statement.objects.filter(question=instance.question):
+                    s = self.parse(statement.subject, instance)
+                    p = self.parse(statement.predicate, instance)
+                    o = self.parse(statement.obj, instance)
+                    statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
 
     def parse(self, statement, answer):
         pre, uri = statement.split(':')
         if pre == '_':
-            return statement
+            if '{{value}}' in uri:
+                return str(answer.integer)
+            else:
+                node = statement + 'o' + str(answer.organization_id) + 'q' + str(answer.question_id)
+                return node
         prefix = RDFPrefix.objects.get(short=pre).full
         if uri:
             partial_statement = prefix + uri
