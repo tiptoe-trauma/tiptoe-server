@@ -430,12 +430,14 @@ class DefinitionList(viewsets.ViewSet):
 
 class CategoryList(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by('order')
-    serializer_class = CategorySerializer
 
     def list(self, request):
-        serializer = self.get_serializer(self.queryset, many=True)
+        self.update_queryset()
+        serializer = CategorySerializer(CategoryList.queryset, many=True)
         return Response(serializer.data)
-
+    
+    def update_queryset(self):
+        CategoryList.queryset = Category.objects.all().order_by('order')
 
 class QuestionList(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.all()
