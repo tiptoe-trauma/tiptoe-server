@@ -672,7 +672,7 @@ class AnswerViewSet(viewsets.ModelViewSet):
         pre, uri = statement.split(':')
         if pre == '_':
             if '{{value}}' in uri:
-                return str(answer.integer)
+                return str(answer.value())
             else:
                 node = statement + 'o' + str(answer.organization_id) + 'q' + str(answer.question_id)
                 return node
@@ -681,7 +681,7 @@ class AnswerViewSet(viewsets.ModelViewSet):
             partial_statement = prefix + uri
         else:
             partial_statement = prefix
-        return '<' + partial_statement.format(user=answer.organization.id) + '>'
+        return  '<' + partial_statement.format(user=answer.organization.id) + '>' 
 
 class RDFView(APIView):
     authentication_classes = (TokenAuthentication,)
