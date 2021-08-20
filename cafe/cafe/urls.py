@@ -20,7 +20,10 @@ from rest_framework import routers
 from rest_framework.authtoken import views
 
 from django.contrib.staticfiles.views import serve
-from django.views.generic import RedirectView
+from django.views.generic import RedirectView 
+
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 admin.autodiscover()
@@ -37,13 +40,6 @@ router.register(r'definitions', DefinitionList, base_name='d')
 router.register(r'completion', CompletionView, base_name='cv')
 
 urlpatterns = [
-    url(r'^$', serve,
-        kwargs={'path': 'index.html'}),
-    url(r'^questionnaire/', serve,
-        kwargs={'path': 'index.html'}),
-    url(r'^user/', serve,
-        kwargs={'path': 'index.html'}),
-
     url(r'^api/', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^api/auth/', views.obtain_auth_token),
@@ -58,7 +54,8 @@ urlpatterns = [
     url(r'^api/stats/(?P<stat_type>\S+)', api_stat),
     url(r'^api/policies/(?P<speciality>\S+)', api_policy),
     url(r'^api/rdf/(?P<organization_id>[0-9]+)', RDFView.as_view()),
-
-    url(r'^(?!(/static/|/graphs/).*)(?P<path>.*\..*)$',
-        RedirectView.as_view(url='/static/%(path)s')),
-]
+    url(r'^api/percent_yes/(?P<web_category>\S+)', api_percent_yes),
+    url(r'^api/answers/(?P<web_category>\S+)', api_category_responses),
+    url(r'^api/run_query/$', run_unique_query),
+    url(r'^graphs/(?P<path>.*)', RedirectView.as_view(url='/static/%(path)s')),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

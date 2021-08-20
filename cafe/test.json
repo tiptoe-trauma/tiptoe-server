@@ -342,7 +342,7 @@
     "pk": 14,
     "fields": {
       "category": 19,
-      "text": "Does the {trauma medical director|test} participate in {trauma call|trauma on call plan specification}?",
+      "text": "Does the {trauma medical director|trauma medical director role} participate in {trauma call|trauma on call plan specification}?",
       "order": 70,
       "q_type": "bool",
       "tags": "tmd",
@@ -547,7 +547,7 @@
     "pk": 30,
     "fields": {
       "category": 20,
-      "text": "Has your facility's TPM {full time position|full time employee role}?",
+      "text": "Is your facility's TPM a {full time position|full time employee role}?",
       "order": 60,
       "q_type": "bool",
       "tags": "",
@@ -621,7 +621,7 @@
     "pk": 35,
     "fields": {
       "category": 27,
-      "text": "Is the Registrar a full-time position?",
+      "text": "Is the Trauma Registrar a full-time position?",
       "order": 10,
       "q_type": "bool",
       "tags": "",
@@ -1837,10 +1837,12 @@
       "q_type": "bool",
       "tags": "",
       "help_text": "",
-      "depends_string": null,
+      "depends_string": "#148 == False",
       "api_name": null,
       "options": [],
-      "depends_on": []
+      "depends_on": [
+        148
+      ]
     }
   },
   {

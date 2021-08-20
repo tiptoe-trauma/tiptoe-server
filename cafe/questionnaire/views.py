@@ -8,9 +8,9 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
-from questionnaire.rdf import get_definitions, run_statements, delete_context, rdf_from_organization
+from questionnaire.rdf import get_definitions, run_query, run_statements, delete_context, rdf_from_organization
 from averaged_dict.average_dict import average_dict
 from django.core.mail import send_mail
 
@@ -86,10 +86,11 @@ def unique_email(email):
 def create_web_user(request, questionnaire_type):
     if request.user.is_authenticated():
         return Response("Must be logged out to create new user", status=500)
-    if questionnaire_type not in ['center', 'system']:
+    if questionnaire_type not in ['center', 'system', 'tiptoe']:
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
     body = json.loads(request.body.decode('utf-8'))
     email = body.get('email')
+    name = body.get('name')
     if(not unique_email(email)):
         return Response("Email must be unique", status=500)
     user_count = User.objects.count()
@@ -98,7 +99,10 @@ def create_web_user(request, questionnaire_type):
         user.email = email
         user.save()
     token = Token.objects.get(user=user)
-    org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
+    if name:
+        org = Organization.objects.create(name=name, org_type=questionnaire_type)
+    else:
+        org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
     org.users.add(user)
     org.save()
     ActiveOrganization.objects.create(user=user, organization=org)
@@ -159,6 +163,7 @@ def api_stat(request, stat_type):
     questions = questions.exclude(id=total_question.id)
     if request.user.is_authenticated():
         user_org = request.user.activeorganization.organization
+        # import pdb; pdb.set_trace()
         for org in Organization.objects.filter(org_type='center'):
             stats = {}
             total_count = get_or_zero(Answer, organization=org, question=total_question)
@@ -177,6 +182,7 @@ def api_stat(request, stat_type):
                     other_orgs.append(stats)
     response['certified_orgs'] = average_dict(certified_orgs)
     response['other_orgs'] = average_dict(other_orgs)
+    print(response)
     return Response(response)
 
 @api_view(['GET'])
@@ -191,6 +197,174 @@ def stats(request):
                 data['no'] += 1
         response.append(data)
     return Response(response)
+
+@api_view(['GET'])
+def api_category_responses(request, web_category):
+    # Get all responses to all questions in a given category
+    category = web_category.replace('_', ' ')
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization_id
+        for question in questions:
+            answers = Answer.objects.filter(question_id__exact=question.id)
+            response[question.id] = {'q_text': question.text,
+                                    'questionnaire': questionnaire,
+                                    'order': question.order,
+                                    'total': len(answers)}
+
+            answer_type = ''
+            for answer in answers:
+                org_id = answer.organization_id
+                if not answer_type:
+                    if answer.yesno is not None or answer.integer == -1:
+                        answer_type = "yesno"
+                    elif answer.integer:
+                        answer_type = "number"
+                    elif answer.text:
+                        answer_type = "text"
+                    elif answer.options.values():
+                        answer_type = "options"
+                
+                if answer_type == "yesno":
+                    if answer.yesno:
+                        try:
+                            response[question.id]['trues'] += 1
+                        except KeyError:
+                            response[question.id]['trues'] = 1
+                    if user_org == org_id:
+                        if answer.integer == -1:
+                            response[question.id]['active_answer'] = False
+                        else:
+                            response[question.id]['active_answer'] = answer.yesno
+                    if answer.integer == -1:
+                        response[question.id]['total'] -= 1
+                elif answer_type == "number":
+                    try:
+                        response[question.id]['numbers'].append(answer.integer)
+                    except KeyError:
+                        response[question.id]['numbers'] = [answer.integer]
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = answer.integer
+                elif answer_type == "text":
+                    if 'options' not in response[question.id].keys():
+                        response[question.id]['options'] = {}
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = []
+                    if answer.text:
+                        if answer.text not in response[question.id]['options'].keys():
+                            response[question.id]['options'][answer.text] = 1
+                        else:
+                            response[question.id]['options'][answer.text] += 1
+                        if user_org == org_id:
+                            response[question.id]['active_answer'].append(answer.text)
+                elif answer_type == "options":
+                    if 'options' not in response[question.id].keys():
+                        response[question.id]['options'] = {}
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = []
+                    for option in answer.options.values():
+                        if option['text'] not in response[question.id]['options'].keys():
+                            response[question.id]['options'][option['text']] = 1
+                        else:
+                            response[question.id]['options'][option['text']] += 1
+                        if user_org == org_id:
+                            response[question.id]['active_answer'].append(option['text'])
+
+            if answer_type == "text" or answer_type == "options":
+                options = {}
+                for option in question.options.values():
+                    options[option['text']] = option['id']
+
+                options = {a: b for a, b in sorted(options.items(), key=lambda item: item[1])}
+                response[question.id]['or_options'] = sorted(response[question.id]['options'].items(),
+                                                            key=lambda kv: options[kv[0]])
+
+    return Response(response)
+
+
+
+@api_view(['GET'])
+def api_percent_yes(request, web_category):
+    # For gathering responses whose type is boolean
+    category = web_category.replace('_', ' ')
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for question in questions:
+            import pdb; pdb.set_trace()
+            response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire}
+            answers = Answer.objects.filter(question_id__exact=question.id)
+            total = len(answers)
+            trues = 0
+            for answer in answers:
+                org_id = answer.organization_id
+                if answer.yesno:
+                    trues += 1
+                    if user_org == org_id:
+                        response[question.id]['active_answer'] = answer.yesno
+            response[question.id]['percent_yes'] = round((trues/total) * 100)
+    return Response(response)
+
+@api_view(['GET'])
+def api_numbers(request, web_category):
+    # For gathering responses whose type is integers
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for question in questions:
+            response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
+            answers = Answer.objects.filter(question_id__exact=question_id)
+            for answer in answers:
+                org_id = answer.organization_id
+                if answer.integer:
+                    response[question.id]['answers'].append(answer.integer)
+                    if user_org == org_id:
+                       response[question.id]['active_answer'] = answer.integer
+    return Response(response)
+
+@api_view(['GET'])
+def api_multichoice(request, web_category):
+    # For gathering responses with multichoice answers
+    response = {}
+    cat_list = Category.objects.filter(name__exact=category)
+    cat_id = cat_list[0].id
+    questionnaire = cat_list[0].questionnaire
+
+    questions = Question.objects.filter(category__exact=cat_id)
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        for question in questions:
+            response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
+            answers = Answer.objects.filter(question_id__exact=question_id)
+            for answer in answers:
+                org_id = answer.organization_id
+                if answer.integer:
+                    response[question.id]['answers'].append(answer.integer)
+                    if user_org == org_id:
+                       response[question.id]['active_answer'] = answer.integer
+    return Response(response)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def run_unique_query(request):
+    query = request.GET.get('query')
+    res = run_query(query)
+    print(res)
+    return Response(res)
 
 def populate_joyplot(org):
     data = {}
@@ -256,12 +430,14 @@ class DefinitionList(viewsets.ViewSet):
 
 class CategoryList(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by('order')
-    serializer_class = CategorySerializer
 
     def list(self, request):
-        serializer = self.get_serializer(self.queryset, many=True)
+        self.update_queryset()
+        serializer = CategorySerializer(CategoryList.queryset, many=True)
         return Response(serializer.data)
-
+    
+    def update_queryset(self):
+        CategoryList.queryset = Category.objects.all().order_by('order')
 
 class QuestionList(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.all()
@@ -421,15 +597,16 @@ class AnswerViewSet(viewsets.ModelViewSet):
             return Response()
 
     def perform_create(self, serializer):
+        old_answer = Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question'])
         Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question']).delete()
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
-        #self.run_rdf(instance)
+        self.run_rdf(instance, old_answer)
 
     def perform_update(self, serializer):
         instance = serializer.save(organization=self.request.user.activeorganization.organization)
-        #self.run_rdf(instance)
+        self.run_rdf(instance)
 
-    def run_rdf(self, instance):
+    def run_rdf(self, instance, old_answer=None):
         if instance.question.q_type == 'bool':
             if instance.yesno == True:
                 statements = []
@@ -452,8 +629,8 @@ class AnswerViewSet(viewsets.ModelViewSet):
                         p = self.parse(statement.predicate, instance)
                         o = self.parse(statement.obj, instance)
                         statements.append((s, p, o))
-                    elif statement.choice in instance.options:
-                        print('choice ' + statement)
+                    elif statement.choice in instance.options.all():
+                        print('choice ' + str(statement))
                         s = self.parse(statement.subject, instance)
                         p = self.parse(statement.predicate, instance)
                         o = self.parse(statement.obj, instance)
@@ -461,14 +638,50 @@ class AnswerViewSet(viewsets.ModelViewSet):
                 run_statements(statements, instance.context())
             else:
                 delete_context(instance.context())
+        elif instance.question.q_type == 'combo':
+            statements = []
+            delete_context(instance.context())
+            if instance.value():
+                for statement in Statement.objects.filter(question=instance.question):
+                    if statement.choice is None:
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                    elif statement.choice.text == instance.value():
+                        print('choice ' + str(statement))
+                        s = self.parse(statement.subject, instance)
+                        p = self.parse(statement.predicate, instance)
+                        o = self.parse(statement.obj, instance)
+                        statements.append((s, p, o))
+                run_statements(statements, instance.context())
+        elif instance.question.q_type == 'int':
+            if instance.integer:
+                statements = []
+                delete_context(instance.context())
+                for statement in Statement.objects.filter(question=instance.question):
+                    s = self.parse(statement.subject, instance)
+                    p = self.parse(statement.predicate, instance)
+                    o = self.parse(statement.obj, instance)
+                    statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
 
     def parse(self, statement, answer):
         pre, uri = statement.split(':')
         if pre == '_':
-            return statement
+            if '{{value}}' in uri:
+                return str(answer.value())
+            else:
+                node = statement + 'o' + str(answer.organization_id) + 'q' + str(answer.question_id)
+                return node
         prefix = RDFPrefix.objects.get(short=pre).full
-        partial_statement = prefix.format(uri)
-        return partial_statement.format(user=answer.organization.id)
+        if uri:
+            partial_statement = prefix + uri
+        else:
+            partial_statement = prefix
+        return  '<' + partial_statement.format(user=answer.organization.id) + '>' 
 
 class RDFView(APIView):
     authentication_classes = (TokenAuthentication,)

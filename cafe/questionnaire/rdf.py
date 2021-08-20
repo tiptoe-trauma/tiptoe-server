@@ -6,10 +6,12 @@ from rdflib import Graph, BNode, URIRef, Literal, Namespace
 def get_definitions():
     query = """
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     SELECT DISTINCT ?term ?userdef ?otherdef
-    FROM <file://full_oostt.owl>
     WHERE {
-      ?class rdf:type owl:Class .
+    #   ?class rdf:type owl:Class .
       ?class rdfs:label ?term .
       optional {?class obo:OOSTT_00000030 ?userdef . }
       optional {?class obo:IAO_0000115 ?otherdef . }
@@ -43,43 +45,75 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
         print('failed rdf')
         return []
 
+def run_query(query):
+    payload = {'query': query, 'Accept': 'application/sparql-results+json'}
+    headers = {'content-type': 'application/x-www-form-urlencoded'}
+    print('Running:\n' + query)
+
+    r = requests.get(settings.TRIPLESTORE_URL, params=payload, headers=headers)
+    # r = requests.get(ENDPOINT, params=payload, headers=headers)
+    # import pdb;pdb.set_trace()
+
+    return r.json()
 
 def delete_context(context):
-    pass
+    query = """\
+            CLEAR GRAPH {}
+            """.format(context)
+    payload = { 'update': query }
+    headers = {'content-type': 'application/n-triples'}
+    print(query)
+    r = requests.post(settings.TRIPLESTORE_URL + '/statements' , params=payload)
+    # r = requests.post(ENDPOINT +'/statements', params=payload)
+    if r.status_code == 200 or r.status_code == 204:
+        print('triples deleted')
+    else:
+        print('error during triple deletion')
+        print(r.status_code)
 
 def run_statements(statements, context):
     body = ' .\n'.join([' '.join(s) for s in statements]) + ' .\n'
     headers = {'content-type': 'application/n-triples'}
+    query = '''
+        INSERT DATA {{
+            GRAPH {context} {{
+                {body}
+            }}
+        }}
+    '''.format(context=context, body=body)
+    print(query)
     params = {'context': context}
-    print('bod: {}'.format(body))
-    try:
-        r = requests.request('PUT', settings.TRIPLESTORE_URL, data=body, headers=headers, params=params)
-        print('finished: {}'.format(r.text))
-    except:
-        print('failed rdf')
+    payload = {'update': query}
+    r = requests.request('PUT', settings.TRIPLESTORE_URL + '/statements', data=body, headers=headers,  params=params)
+    if r.status_code == 200 or r.status_code == 204:
+        print('triples added')
+    else:
+        print('error during triple creation')
+        print(r.status_code)
+
 
 def get_uri(text, prefixes, bnodes, answer):
     split = text.format(user=answer.organization.id).split(':')
     if len(split) > 1:
         # we have a prefix
         if split[0] == '_':
-            if '{' in split[1]:
-                return Literal(answer.integer)
+            if '{{value}}' in split[1]:
+                return Literal(answer.value())
             else:
                 bnode_name = split[1] + str(answer.id)
                 # we have a blank node
                 # check to see if it already exists
                 if bnode_name in bnodes.keys():
-                    return bnodes[bnode_name]
+                    return  '_:' + bnodes[bnode_name]
                 else:
                     # if not create it
                     # b = BNode(bnode_name)
                     b = prefixes['bnode'][bnode_name]
                     bnodes[bnode_name] = b
-                    return b
+                    return  '_:' +  b 
         else:
             if split[0] in prefixes.keys():
-                return prefixes[split[0]][split[1]]
+                return '<' + prefixes[split[0]][split[1]] + '>'
             else:
                 print('No prefix found: {}'.format(split))
                 return None
@@ -136,7 +170,7 @@ def get_triples(answer, prefixes, bnodes):
                     ret.append((s, p, o))
     elif q_type == 'int' or q_type == 'text':
         for statement in Statement.objects.filter(question=answer.question):
-            if statement.value:
+            if statement.value or '{{value}}' in statement.obj:
                 s = get_uri(statement.subject, prefixes, bnodes, answer)
                 p = get_uri(statement.predicate, prefixes, bnodes, answer)
                 if q_type == 'int':

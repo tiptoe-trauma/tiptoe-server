@@ -25,8 +25,8 @@ SECRET_KEY = '$@2z&+$_5vurck9m^_qowzdvrjg7si=-f8y7zso4cnd!uav7&l'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cafe-trauma.herokuapp.com',
-                 'app.cafe-trauma.com',
+ALLOWED_HOSTS = ['cafe-trauma.com',
+                 '.cafe-trauma.com',
                  'localhost',
                  '127.0.0.1',
                  '[::1]']
@@ -89,10 +89,10 @@ WSGI_APPLICATION = 'cafe.wsgi.application'
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 DATABASES = {
-    #'default': {
+    # 'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
     #    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    #}
+    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'cafe',
@@ -101,6 +101,35 @@ DATABASES = {
         'HOST': '127.0.0.1',
         'PORT': '',
     }
+}
+
+
+# Logging
+# https://docs.djangoproject.com/en/3.0/topics/logging/
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'django.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+
+        'django.request': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }
 
 
@@ -128,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -141,7 +170,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = '/usr/share/nginx/html/static'
 STATIC_URL = '/static/'
 
 # Extra places for collectstatic to find static files.
