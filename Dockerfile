@@ -36,4 +36,4 @@ ENV CAFE_TRIPLESTORE_URL=$CAFE_TRIPLESTORE_URL
 
 ENV DJANGO_SETTINGS_MODULE=cafe.prod_settings
 ENTRYPOINT ["gunicorn"]
-CMD ["cafe.wsgi", "--bind=127.0.0.1:3000", "--workers=2"]
+CMD ["cafe.wsgi", "--bind=0.0.0.0:3000", "--workers=2"]

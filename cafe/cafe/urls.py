@@ -57,5 +57,5 @@ urlpatterns = [
     url(r'^api/percent_yes/(?P<web_category>\S+)', api_percent_yes),
     url(r'^api/answers/(?P<web_category>\S+)', api_category_responses),
     url(r'^api/run_query/$', run_unique_query),
-    url(r'^graphs/.*', RedirectView.as_view(url='/api/')),
+    url(r'^graphs/(?P<path>.*)', RedirectView.as_view(url='/static/%(path)s')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
