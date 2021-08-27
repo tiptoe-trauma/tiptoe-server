@@ -22,5 +22,7 @@ DATABASES = {
 EMAIL_HOST = 'mail.uams.edu'
 EMAIL_PORT = 25
 
-TRIPLESTORE_URL = os.getenv('CAFE_TRIPLESTORE_URL', 'http://triplestore-cafe.apps.dbmi.cloud/repositories/cafe')
+TRIPLESTORE_URL = os.getenv('CAFE_TRIPLESTORE_URL', 'https://triplestore-cafe.apps.dbmi.cloud/repositories/cafe')
+TRIPLESTORE_USER = os.getenv('CAFE_TRIPLESTORE_USER', 'blank')
+TRIPLESTORE_PASSWORD = os.getenv('CAFE_TRIPLESTORE_PASSWORD', 'blank')
 STATIC_ROOT = '/var/www/html/static'

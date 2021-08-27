@@ -20,7 +20,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     body = {'query': query, 'Accept': 'application/sparql-results+json' }
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     try:
-        r = requests.request('POST', settings.TRIPLESTORE_URL, data=body, headers=headers)
+        r = requests.request('POST', settings.TRIPLESTORE_URL, data=body, headers=headers, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD))
         if r.ok:
             try:
                 data = r.json()
@@ -50,7 +50,7 @@ def run_query(query):
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     print('Running:\n' + query)
 
-    r = requests.get(settings.TRIPLESTORE_URL, params=payload, headers=headers)
+    r = requests.get(settings.TRIPLESTORE_URL, params=payload, headers=headers, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD))
     # r = requests.get(ENDPOINT, params=payload, headers=headers)
     # import pdb;pdb.set_trace()
 
@@ -63,7 +63,7 @@ def delete_context(context):
     payload = { 'update': query }
     headers = {'content-type': 'application/n-triples'}
     print(query)
-    r = requests.post(settings.TRIPLESTORE_URL + '/statements' , params=payload)
+    r = requests.post(settings.TRIPLESTORE_URL + '/statements' , params=payload, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD))
     # r = requests.post(ENDPOINT +'/statements', params=payload)
     if r.status_code == 200 or r.status_code == 204:
         print('triples deleted')
@@ -84,7 +84,7 @@ def run_statements(statements, context):
     print(query)
     params = {'context': context}
     payload = {'update': query}
-    r = requests.request('PUT', settings.TRIPLESTORE_URL + '/statements', data=body, headers=headers,  params=params)
+    r = requests.request('PUT', settings.TRIPLESTORE_URL + '/statements', data=body, headers=headers,  params=params, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD))
     if r.status_code == 200 or r.status_code == 204:
         print('triples added')
     else:
