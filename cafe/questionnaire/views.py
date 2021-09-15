@@ -86,7 +86,7 @@ def unique_email(email):
 def create_web_user(request, questionnaire_type):
     if request.user.is_authenticated():
         return Response("Must be logged out to create new user", status=500)
-    if questionnaire_type not in ['center', 'system', 'tiptoe']:
+    if questionnaire_type not in ['center', 'system', 'tiptoe', 'tos']:
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
     body = json.loads(request.body.decode('utf-8'))
     email = body.get('email')

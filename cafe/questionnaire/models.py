@@ -18,7 +18,8 @@ class Definition():
 
 QUESTIONNAIRES = (('center', 'Trauma Center'),
                   ('system', 'Trauma System'),
-                  ('tiptoe', 'TIPTOE'))
+                  ('tiptoe', 'TIPTOE'),
+                  ('tos', 'TOS'))
 
 class Category(models.Model):
     name = models.CharField(max_length=50)
