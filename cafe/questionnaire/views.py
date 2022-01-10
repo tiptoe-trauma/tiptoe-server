@@ -1,6 +1,7 @@
 from questionnaire.models import *
 import json
 from django.conf import settings
+from django.db.models import Q
 from questionnaire.serializers import *
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
@@ -210,7 +211,8 @@ def api_category_responses(request, web_category):
     if request.user.is_authenticated():
         user_org = request.user.activeorganization.organization_id
         for question in questions:
-            answers = Answer.objects.filter(question_id__exact=question.id)
+            answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
+                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
             response[question.id] = {'q_text': question.text,
                                     'questionnaire': questionnaire,
                                     'order': question.order,
@@ -302,7 +304,8 @@ def api_percent_yes(request, web_category):
         for question in questions:
             import pdb; pdb.set_trace()
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire}
-            answers = Answer.objects.filter(question_id__exact=question.id)
+            answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
+                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
             total = len(answers)
             trues = 0
             for answer in answers:
@@ -327,7 +330,8 @@ def api_numbers(request, web_category):
         user_org = request.user.activeorganization.organization
         for question in questions:
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
-            answers = Answer.objects.filter(question_id__exact=question_id)
+            answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
+                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
             for answer in answers:
                 org_id = answer.organization_id
                 if answer.integer:
@@ -349,7 +353,8 @@ def api_multichoice(request, web_category):
         user_org = request.user.activeorganization.organization
         for question in questions:
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
-            answers = Answer.objects.filter(question_id__exact=question_id)
+            answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
+                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
             for answer in answers:
                 org_id = answer.organization_id
                 if answer.integer:
@@ -524,7 +529,7 @@ class StatView(viewsets.ViewSet):
     def retrieve(self, request, pk):
         question = Question.objects.get(pk=pk)
         answer = Answer.objects.get(question=question, user=request.user)
-        other_answers = Answer.objects.filter(question=answer.question)
+        other_answers = Answer.objects.filter( Q(question=answer.question) & Q(organization__approved=True))
         truth_map = [x.eq(answer) for x in other_answers]
         same = truth_map.count(True)
         percent = 0.0
