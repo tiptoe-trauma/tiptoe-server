@@ -1,5 +1,5 @@
 TAG=$(shell git rev-parse --short HEAD)
-IMAGE_NAME=jrutecht/cafe-django
+IMAGE_NAME=jmwhorton/tiptoe-server
 .PHONY: push clean
 
 default: build

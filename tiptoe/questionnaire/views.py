@@ -41,11 +41,11 @@ def populate_stats(org, stat_type):
 
 def send_login_email(request, user):
     token = Token.objects.get(user=user).key
-    login_url = 'https://{}/?token={}'.format(request.get_host(), token)
+    login_url = 'http://{}:38080/?token={}'.format(request.get_host(), token)
     if(settings.EMAIL_HOST):
-        email_message = "Here is your login URL for cafe\n\n{}".format(login_url)
+        email_message = "Here is your login URL for tiptoe\n\n{}".format(login_url)
         send_mail(
-            'CAFE Trauma Login',
+            'TIPTOE Trauma Invitation',
             email_message,
             'questionnaire_retrieval@app.cafe-trauma.com',
             [user.email],
@@ -53,6 +53,48 @@ def send_login_email(request, user):
         )
     else:
         print(login_url)
+
+def send_invite_email(host, user):
+    token = Token.objects.get(user=user).key
+    login_url = 'http://{}:38080/?token={}'.format(host,  token)
+    if(settings.EMAIL_HOST):
+        email_message = "You've been invited to [placeholder]\n\n{}".format(login_url)
+        send_mail(
+            'TIPTOE Trauma Login',
+            email_message,
+            'questionnaire_retrieval@app.cafe-trauma.com',
+            #[user.email],
+            ["jmwhorton@uams.edu"],
+            fail_silently=False,
+        )
+    else:
+        print(login_url)
+
+@api_view(['POST'])
+def invite_to_org(request):
+    if request.user.is_authenticated():
+        body = json.loads(request.body.decode('utf-8'))
+        email = body[0]
+        org = body[1]
+        org_id = org['id']
+        allowed_org = Organization.objects.get(pk=org_id, users=request.user)
+        if(unique_email(email)):
+            user_count = User.objects.count()
+            user = User.objects.create(username='web' + str(user_count))
+            user.email = email
+            user.save()
+            ActiveOrganization.objects.create(user=user, organization=allowed_org)
+        else:
+            user = User.objects.get(email=email)
+
+        allowed_org.users.add(user)
+        allowed_org.save()
+
+        send_invite_email(request.get_host(), user)
+
+        return Response('Invitation sent.')
+    else:
+        return Response("Must be logged in to send an invitation.", status=500)
 
 @api_view(['POST'])
 def retrieve_user(request):
@@ -198,6 +240,22 @@ def stats(request):
                 data['no'] += 1
         response.append(data)
     return Response(response)
+
+@api_view(['GET'])
+def get_sample_size(request):
+    if request.user.is_authenticated():
+        user_org = request.user.activeorganization.organization
+        organizations = Organization.objects.filter( Q(org_type=user_org.org_type))
+        
+        if (user_org.org_type == 'tiptoe'):
+            minimum = 20
+
+        result = 0
+        for organization in organizations:
+            count = Answer.objects.filter( Q(organization=organization)).count()
+            if count >= minimum and user_org != organization:
+                result +=1
+        return Response(result)
 
 @api_view(['GET'])
 def api_category_responses(request, web_category):

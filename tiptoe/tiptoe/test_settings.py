@@ -1,4 +1,4 @@
-from cafe.settings import *
+from tiptoe.settings import *
 
 print("Running on DEV settings")
 
@@ -10,9 +10,11 @@ ALLOWED_HOSTS = ['localhost',
 DATABASES = {
      'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'test.sqlite3'),
     }
 }
 EMAIL_HOST = 'example.com'
 EMAIL_HOST_USER = 'bad'
 EMAIL_HOST_PASSWORD = 'bad'
+
+TRIPLESTORE_URL = 'http://localhost:7200'

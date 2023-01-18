@@ -1,4 +1,4 @@
-"""cafe URL Configuration
+"""tiptoe URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.9/topics/http/urls/
@@ -50,6 +50,7 @@ urlpatterns = [
     url(r'^api/create_user/(?P<questionnaire_type>\S+)', create_web_user),
     url(r'^api/update_email', update_email),
     url(r'^api/retrieve_user', retrieve_user),
+    url(r'^api/invite', invite_to_org),
     url(r'^api/token_login/', token_login),
     url(r'^api/stats/(?P<stat_type>\S+)', api_stat),
     url(r'^api/policies/(?P<speciality>\S+)', api_policy),
@@ -57,5 +58,6 @@ urlpatterns = [
     url(r'^api/percent_yes/(?P<web_category>\S+)', api_percent_yes),
     url(r'^api/answers/(?P<web_category>\S+)', api_category_responses),
     url(r'^api/run_query/$', run_unique_query),
+    url(r'^api/sample_size/', get_sample_size),
     url(r'^graphs/(?P<path>.*)', RedirectView.as_view(url='/static/%(path)s')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
