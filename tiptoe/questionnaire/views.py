@@ -54,11 +54,11 @@ def send_login_email(request, user):
     else:
         print(login_url)
 
-def send_invite_email(host, user):
+def send_invite_email(host, user, message):
     token = Token.objects.get(user=user).key
     login_url = 'http://{}:38080/?token={}'.format(host,  token)
     if(settings.EMAIL_HOST):
-        email_message = "You've been invited to [placeholder]\n\n{}".format(login_url)
+        email_message = message + "\n\nHere is your login URL: {}".format(login_url)
         send_mail(
             'TIPTOE Trauma Login',
             email_message,
@@ -76,6 +76,7 @@ def invite_to_org(request):
         body = json.loads(request.body.decode('utf-8'))
         email = body[0]
         org = body[1]
+        message = body[2]
         org_id = org['id']
         allowed_org = Organization.objects.get(pk=org_id, users=request.user)
         if(unique_email(email)):
@@ -90,7 +91,7 @@ def invite_to_org(request):
         allowed_org.users.add(user)
         allowed_org.save()
 
-        send_invite_email(request.get_host(), user)
+        send_invite_email(request.get_host(), user, message)
 
         return Response('Invitation sent.')
     else:
