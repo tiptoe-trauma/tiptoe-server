@@ -51,6 +51,7 @@ urlpatterns = [
     url(r'^api/update_email', update_email),
     url(r'^api/retrieve_user', retrieve_user),
     url(r'^api/invite', invite_to_org),
+    url(r'^api/approve', approve_org),
     url(r'^api/token_login/', token_login),
     url(r'^api/stats/(?P<stat_type>\S+)', api_stat),
     url(r'^api/policies/(?P<speciality>\S+)', api_policy),

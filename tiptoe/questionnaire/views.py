@@ -98,6 +98,17 @@ def invite_to_org(request):
         return Response("Must be logged in to send an invitation.", status=500)
 
 @api_view(['POST'])
+def approve_org(request):
+    if request.user.is_authenticated():
+        active_org = request.user.activeorganization.organization
+        active_org.approved=True
+        active_org.save()
+
+        return Response('Survey submitted.')
+    else:
+        return Response("Must be logged in to approve a submission.", status=500)
+
+@api_view(['POST'])
 def retrieve_user(request):
     body = json.loads(request.body.decode('utf-8'))
     email = body.get('email')
@@ -254,7 +265,7 @@ def get_sample_size(request):
         result = 0
         for organization in organizations:
             count = Answer.objects.filter( Q(organization=organization)).count()
-            if count >= minimum and user_org != organization:
+            if count >= minimum and organization.approved and user_org != organization:
                 result +=1
         return Response(result)
 
