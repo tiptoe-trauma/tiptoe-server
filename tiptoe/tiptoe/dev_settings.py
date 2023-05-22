@@ -23,3 +23,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_FILE_PATH = ''
 EMAIL_HOST = 'mail.uams.edu'
 EMAIL_PORT = 25
+
+TRIPLESTORE_URL = 'http://triplestore:7200'  + '/repositories/tiptoe'
+TRIPLESTORE_USER = 'blank' 
+TRIPLESTORE_PASSWORD = 'blank'

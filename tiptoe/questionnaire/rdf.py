@@ -93,7 +93,7 @@ def run_statements(statements, context):
 
 
 def get_uri(text, prefixes, bnodes, answer):
-    split = text.format(user=answer.organization.id).split(':')
+    split = text.format(user=answer.survey.id).split(':')
     if len(split) > 1:
         # we have a prefix
         if split[0] == '_':
@@ -188,7 +188,7 @@ def get_triples(answer, prefixes, bnodes):
     return ret
 
 
-def rdf_from_organization(organization):
+def rdf_from_survey(survey):
     # first clear graph
     g = Graph()
     bnodes = {}
@@ -200,7 +200,7 @@ def rdf_from_organization(organization):
         g.bind(prefix.short, prefixes[prefix.short])
 
     # Generate triples for answers
-    for answer in Answer.objects.filter(organization=organization):
+    for answer in Answer.objects.filter(survey=survey):
         for triple in get_triples(answer, prefixes, bnodes):
             g.add(triple)
 

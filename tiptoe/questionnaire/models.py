@@ -54,14 +54,14 @@ class Question(models.Model):
     def enabled(self, user):
         if self.depends_string == None:
             return True
-        if user.is_authenticated():
+        if user.is_authenticated:
             matches = self.dep_regex.finditer(self.depends_string)
             cur_status = True
             prev_operator = ""
             for matchnum, match in enumerate(matches):
                 d = match.groupdict()
                 q = Question.objects.get(pk=int(d['question']))
-                a = Answer.objects.filter(organization=user.activeorganization.organization, question=q).first()
+                a = Answer.objects.filter(survey=user.activesurvey.survey, question=q).first()
                 print(d, q, a)
                 next_status = self.dep_evaluate(d['operator'], d['value'], q, a)
                 if prev_operator != "":
@@ -117,19 +117,28 @@ class Option(models.Model):
     def __str__(self):
         return self.text
 
-class Organization(models.Model):
+class Survey(models.Model):
     name = models.CharField(max_length=200, blank=True)
     users = models.ManyToManyField(User)
     org_type = models.CharField(max_length=6)
     approved = models.BooleanField(default=False)
+    date = models.DateField(null=True, blank=True)
+    organization = models.ForeignKey('Organization', on_delete=models.CASCADE, related_name='surveys', blank=True, null=True)
     def __str__(self):
         return self.name
 
-class ActiveOrganization(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    organization = models.ForeignKey('Organization', on_delete=models.CASCADE)
+class Organization(models.Model):
+    name = models.CharField(max_length=200, blank=True)
+    users = models.ManyToManyField(User, blank=True)
+    org_type = models.CharField(max_length=6, blank=True)
     def __str__(self):
-        return "{}-{}".format(self.user, self.organization)
+        return self.name
+
+class ActiveSurvey(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    survey = models.ForeignKey('Survey', on_delete=models.CASCADE)
+    def __str__(self):
+        return "{}-{}".format(self.user, self.survey)
 
 
 class Answer(models.Model):
@@ -137,10 +146,10 @@ class Answer(models.Model):
     options = models.ManyToManyField('Option', blank=True)
     question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='answer')
     integer = models.IntegerField(null=True, blank=True)
-    yesno = models.NullBooleanField(null=True, blank=True)
-    organization = models.ForeignKey('Organization', on_delete=models.CASCADE)
+    yesno = models.BooleanField(null=True, blank=True)
+    survey = models.ForeignKey('Survey', on_delete=models.CASCADE)
     class Meta:
-        unique_together = ('organization', 'question')
+        unique_together = ('survey', 'question')
     def eq(self, target):
         if(target.question.q_type == 'bool'):
             return self.yesno == target.yesno
@@ -160,9 +169,9 @@ class Answer(models.Model):
             return [ x.text for x in self.options.all() ]
         return 'bad question type'
     def __str__(self):
-        return "{} - {}".format(self.organization, self.question.id)
+        return "{} - {}".format(self.survey, self.question.id)
     def context(self):
-        return "<https://cafe-trauma.com/cafe/organization/{}/question/{}>".format(self.organization.id, self.question.id)
+        return "<https://cafe-trauma.com/cafe/survey/{}/question/{}>".format(self.survey.id, self.question.id)
 
 FUNCTION_TYPES = (('month_to_date', 'Number of months to date'),
                   ('example', 'Example'))

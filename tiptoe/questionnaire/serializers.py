@@ -24,9 +24,14 @@ class UserAnswer(serializers.ModelSerializer):
     # user request to find specific user
     pass
 
+class SurveySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Survey
+        fields = '__all__'
+
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Organization
+        model = Organization 
         fields = '__all__'
 
 class DefinitionSerializer(serializers.Serializer):
@@ -34,16 +39,16 @@ class DefinitionSerializer(serializers.Serializer):
     definition = serializers.CharField(max_length=2000)
 
 class UserSerializer(serializers.ModelSerializer):
-    active_organization = serializers.SerializerMethodField('get_active')
+    active_survey = serializers.SerializerMethodField('get_active')
 
     def get_active(self, user):
-        if user.is_authenticated():
-            if hasattr(user, 'activeorganization'):
-                return OrganizationSerializer(user.activeorganization.organization).data
+        if user.is_authenticated:
+            if hasattr(user, 'activesurvey'):
+                return SurveySerializer(user.activesurvey.survey).data
         return None
     class Meta:
         model = User
-        fields = ('id', 'username', 'is_staff', 'email', 'active_organization')
+        fields = ('id', 'username', 'is_staff', 'email', 'active_survey')
 
 class QuestionSerializer(serializers.ModelSerializer):
     enabled = serializers.SerializerMethodField('is_enabled')
@@ -67,9 +72,9 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_user_answer(self, question):
         user = self.context['request'].user
-        if user.is_authenticated():
+        if user.is_authenticated:
             try:
-                answers = Answer.objects.get(question=question, organization=user.activeorganization.organization)
+                answers = Answer.objects.get(question=question, survey=user.activesurvey.survey)
                 serializer = AnswerSerializer(answers)
                 if answers:
                     return serializer.data

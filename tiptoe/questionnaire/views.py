@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
-from questionnaire.rdf import get_definitions, run_query, run_statements, delete_context, rdf_from_organization
+from questionnaire.rdf import get_definitions, run_query, run_statements, delete_context, rdf_from_survey
 from averaged_dict.average_dict import average_dict
 from django.core.mail import send_mail
 
@@ -32,39 +32,46 @@ def strip_definitions(text):
         text = text.split("|")[1].replace("}", "")
     return text
 
-def populate_stats(org, stat_type):
+#adjust for org
+def populate_stats(srvy, stat_type):
     data = {}
-    data['organization'] = org.name
+    data['survey'] = srvy.name
     for question in Question.objects.filter(tags__contains=stat_type):
-        data[question.api_name] = get_or_none(Answer, organization=org, question=question)
+        data[question.api_name] = get_or_none(Answer, survey=srvy, question=question)
     return data
 
 def send_login_email(request, user):
     token = Token.objects.get(user=user).key
-    login_url = 'http://{}:38080/?token={}'.format(request.get_host(), token)
+    if(settings.LOGIN_URL):
+        login_url = 'https://{}/?token={}'.format(settings.LOGIN_URL, token)
+    else:
+        login_url = 'http://{}/?token={}'.format(request.get_host(), token)
+
     if(settings.EMAIL_HOST):
-        email_message = "Here is your login URL for tiptoe\n\n{}".format(login_url)
+        email_message = "Here is your login URL for TIPTOE\n\n{}".format(login_url)
         send_mail(
-            'TIPTOE Trauma Invitation',
+            'TIPTOE Login',
             email_message,
-            'questionnaire_retrieval@app.cafe-trauma.com',
+            'questionnaire_retrieval@tiptoe.apps.dbmi.cloud',
             [user.email],
             fail_silently=False,
         )
     else:
         print(login_url)
 
-def send_invite_email(host, user, message):
+def send_invite_email(user, message):
     token = Token.objects.get(user=user).key
-    login_url = 'http://{}:38080/?token={}'.format(host,  token)
+    if(settings.LOGIN_URL):
+        login_url = 'https://{}/?token={}'.format(settings.LOGIN_URL, token)
+    else:
+        login_url = 'http://{}/?token={}'.format(request.get_host(), token)
     if(settings.EMAIL_HOST):
         email_message = message + "\n\nHere is your login URL: {}".format(login_url)
         send_mail(
-            'TIPTOE Trauma Login',
+            'TIPTOE Invitation',
             email_message,
-            'questionnaire_retrieval@app.cafe-trauma.com',
-            #[user.email],
-            ["jmwhorton@uams.edu"],
+            'questionnaire_retrieval@tiptoe.apps.dbmi.cloud',
+            [user.email],
             fail_silently=False,
         )
     else:
@@ -72,37 +79,43 @@ def send_invite_email(host, user, message):
 
 @api_view(['POST'])
 def invite_to_org(request):
-    if request.user.is_authenticated():
+    print("starting invite")
+    if request.user.is_authenticated:
+        print("authenticated")
         body = json.loads(request.body.decode('utf-8'))
         email = body[0]
-        org = body[1]
+        org_id = body[1]
+        print(org_id)
         message = body[2]
-        org_id = org['id']
         allowed_org = Organization.objects.get(pk=org_id, users=request.user)
+        print(allowed_org)
+
         if(unique_email(email)):
+            print('new user')
             user_count = User.objects.count()
             user = User.objects.create(username='web' + str(user_count))
             user.email = email
             user.save()
-            ActiveOrganization.objects.create(user=user, organization=allowed_org)
         else:
+            print("else")
             user = User.objects.get(email=email)
 
+        print('after')
         allowed_org.users.add(user)
         allowed_org.save()
 
-        send_invite_email(request.get_host(), user, message)
+        send_invite_email(user, message)
 
         return Response('Invitation sent.')
     else:
         return Response("Must be logged in to send an invitation.", status=500)
 
 @api_view(['POST'])
-def approve_org(request):
-    if request.user.is_authenticated():
-        active_org = request.user.activeorganization.organization
-        active_org.approved=True
-        active_org.save()
+def approve_srvy(request):
+    if request.user.is_authenticated:
+        active_srvy = request.user.activesurvey.survey
+        active_srvy.approved=True
+        active_srvy.save()
 
         return Response('Survey submitted.')
     else:
@@ -138,8 +151,25 @@ def unique_email(email):
     return User.objects.filter(email=email).count() == 0
 
 @api_view(['POST'])
+def create_survey(request):
+    if request.user.is_authenticated:
+        body = json.loads(request.body.decode('utf-8'))
+        surveyDate = body[0]
+        surveyOrg = body[1]
+
+        survey = Survey.objects.create(date=surveyDate, organization_id = surveyOrg["id"])
+        survey.save()
+
+        serializer = SurveySerializer(survey)
+        return Response(serializer.data)
+    else:
+        return Response("Must be logged in to create a survey.", status=500)
+
+
+
+@api_view(['POST'])
 def create_web_user(request, questionnaire_type):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         return Response("Must be logged out to create new user", status=500)
     if questionnaire_type not in ['center', 'system', 'tiptoe', 'tos']:
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
@@ -160,12 +190,12 @@ def create_web_user(request, questionnaire_type):
         org = Organization.objects.create(name=questionnaire_type + str(user_count), org_type=questionnaire_type)
     org.users.add(user)
     org.save()
-    ActiveOrganization.objects.create(user=user, organization=org)
+    #need an active survey?
     return Response({'token': token.key})
 
 @api_view(['POST'])
 def update_email(request):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         body = json.loads(request.body.decode('utf-8'))
         email = body.get('email')
         if(not unique_email(email)):
@@ -181,27 +211,27 @@ def update_email(request):
 
 @api_view(['GET'])
 def tmd_stats(request):
-    if request.user.is_authenticated():
-        org = request.user.activeorganization.organization
-        return Response(populate_stats(org, 'tmd'))
+    if request.user.is_authenticated:
+        srvy = request.user.activesurvey.survey
+        return Response(populate_stats(srvy, 'tmd'))
     return Response("TMD Problem", status=500)
 
 @api_view(['GET'])
 def tpm_stats(request):
-    if request.user.is_authenticated():
-        org = request.user.activeorganization.organization
-        return Response(populate_stats(org, 'tpm'))
+    if request.user.is_authenticated:
+        srvy = request.user.activesurvey.survey
+        return Response(populate_stats(srvy, 'tpm'))
     return Response("TPM Problem", status=500)
 
 @api_view(['GET'])
 def api_policy(request, speciality):
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
         response = {}
         for question in Question.objects.filter(tags__contains=speciality,
                                                 q_type="bool"):
             response[question.api_name] = get_or_none(Answer,
-                                                      organization=user_org,
+                                                      survey=user_srvy,
                                                       question=question)
         return Response(response)
     return Response("Must be logged in", status=402)
@@ -209,43 +239,43 @@ def api_policy(request, speciality):
 @api_view(['GET'])
 def api_stat(request, stat_type):
     response = {}
-    other_orgs = []
-    certified_orgs = []
+    other_srvys = []
+    certified_srvys = []
     questions = Question.objects.filter(tags__contains=stat_type, q_type="int")
     if len(questions) == 0:
         return Response("No questions found for '{}' type".format(stat_type), status=404)
     total_question = questions.get(tags__contains='total')
     questions = questions.exclude(id=total_question.id)
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
         # import pdb; pdb.set_trace()
-        for org in Organization.objects.filter(org_type='center'):
+        for srvy in Survey.objects.filter(org_type='center'):
             stats = {}
-            total_count = get_or_zero(Answer, organization=org, question=total_question)
+            total_count = get_or_zero(Answer, survey=srvy, question=total_question)
             if total_count != 0:
                 for question in questions:
-                    count = get_or_none(Answer, organization=org, question=question)
+                    count = get_or_none(Answer, survey=srvy, question=question)
                     if count != None:
                         stats[question.api_name] = count / total_count
                     else:
                         stats[question.api_name] = None
-                if org == user_org:
-                    response['user_org'] = stats
-                elif org.approved:
-                    certified_orgs.append(stats)
+                if srvy == user_srvy:
+                    response['user_srvy'] = stats
+                elif srvy.approved:
+                    certified_srvys.append(stats)
                 else:
-                    other_orgs.append(stats)
-    response['certified_orgs'] = average_dict(certified_orgs)
-    response['other_orgs'] = average_dict(other_orgs)
+                    other_srvys.append(stats)
+    response['certified_srvys'] = average_dict(certified_srvys)
+    response['other_srvys'] = average_dict(other_srvys)
     print(response)
     return Response(response)
 
 @api_view(['GET'])
 def stats(request):
     response = []
-    for org in Organization.objects.filter(org_type='center'):
+    for srvy in Survey.objects.filter(org_type='center'):
         data = {'yes': 0, 'no': 0}
-        for answer in Answer.objects.filter(organization=org, question__q_type='bool'):
+        for answer in Answer.objects.filter(survey=srvy, question__q_type='bool'):
             if(answer.yesno):
                data['yes'] += 1
             else:
@@ -255,18 +285,16 @@ def stats(request):
 
 @api_view(['GET'])
 def get_sample_size(request):
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
-        organizations = Organization.objects.filter( Q(org_type=user_org.org_type))
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
+        organizations = Organization.objects.filter( Q(org_type='tiptoe') & ~Q(pk=user_srvy.organization.id)).all()
         
-        if (user_org.org_type == 'tiptoe'):
-            minimum = 20
 
         result = 0
-        for organization in organizations:
-            count = Answer.objects.filter( Q(organization=organization)).count()
-            if count >= minimum and organization.approved and user_org != organization:
-                result +=1
+        for org in organizations:
+            surveys = [survey for survey in org.surveys.all() if survey.approved]
+            if surveys:
+                result += 1
         return Response(result)
 
 @api_view(['GET'])
@@ -278,11 +306,21 @@ def api_category_responses(request, web_category):
     cat_id = cat_list[0].id
     questionnaire = cat_list[0].questionnaire
     questions = Question.objects.filter(category__exact=cat_id)
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization_id
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey_id
+        organizations = Organization.objects.all().exclude(pk=request.user.activesurvey.survey.organization.pk)
+        correct_surveys = []
+        correct_surveys.append(request.user.activesurvey.survey)
+        #all orgs except current one
+        for org in organizations:
+            latest_survey = org.surveys.filter(approved=True).order_by('-date')
+            if latest_survey:
+                correct_surveys.append(latest_survey[0])
+
+
         for question in questions:
             answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
-                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
+                                            Q(survey__in=correct_surveys) ) )
             response[question.id] = {'q_text': question.text,
                                     'questionnaire': questionnaire,
                                     'order': question.order,
@@ -290,7 +328,7 @@ def api_category_responses(request, web_category):
 
             answer_type = ''
             for answer in answers:
-                org_id = answer.organization_id
+                srvy_id = answer.survey_id
                 if not answer_type:
                     if answer.yesno is not None or answer.integer == -1:
                         answer_type = "yesno"
@@ -307,7 +345,7 @@ def api_category_responses(request, web_category):
                             response[question.id]['trues'] += 1
                         except KeyError:
                             response[question.id]['trues'] = 1
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                         if answer.integer == -1:
                             response[question.id]['active_answer'] = False
                         else:
@@ -319,31 +357,31 @@ def api_category_responses(request, web_category):
                         response[question.id]['numbers'].append(answer.integer)
                     except KeyError:
                         response[question.id]['numbers'] = [answer.integer]
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                         response[question.id]['active_answer'] = answer.integer
                 elif answer_type == "text":
                     if 'options' not in response[question.id].keys():
                         response[question.id]['options'] = {}
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                         response[question.id]['active_answer'] = []
                     if answer.text:
                         if answer.text not in response[question.id]['options'].keys():
                             response[question.id]['options'][answer.text] = 1
                         else:
                             response[question.id]['options'][answer.text] += 1
-                        if user_org == org_id:
+                        if user_srvy == srvy_id:
                             response[question.id]['active_answer'].append(answer.text)
                 elif answer_type == "options":
                     if 'options' not in response[question.id].keys():
                         response[question.id]['options'] = {}
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                         response[question.id]['active_answer'] = []
                     for option in answer.options.values():
                         if option['text'] not in response[question.id]['options'].keys():
                             response[question.id]['options'][option['text']] = 1
                         else:
                             response[question.id]['options'][option['text']] += 1
-                        if user_org == org_id:
+                        if user_srvy == srvy_id:
                             response[question.id]['active_answer'].append(option['text'])
 
             if answer_type == "text" or answer_type == "options":
@@ -369,20 +407,21 @@ def api_percent_yes(request, web_category):
     questionnaire = cat_list[0].questionnaire
 
     questions = Question.objects.filter(category__exact=cat_id)
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
         for question in questions:
             import pdb; pdb.set_trace()
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire}
+            #change to this answer plus latest approved answer from *other* orgs
             answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
-                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
+                                            Q(survey_id=user_srvy)  | Q(survey__approved=True) ) )
             total = len(answers)
             trues = 0
             for answer in answers:
-                org_id = answer.organization_id
+                srvy_id = answer.survey_id
                 if answer.yesno:
                     trues += 1
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                         response[question.id]['active_answer'] = answer.yesno
             response[question.id]['percent_yes'] = round((trues/total) * 100)
     return Response(response)
@@ -396,17 +435,18 @@ def api_numbers(request, web_category):
     questionnaire = cat_list[0].questionnaire
 
     questions = Question.objects.filter(category__exact=cat_id)
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
         for question in questions:
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
+            #change to this answer plus latest approved answer from *other* orgs
             answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
-                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
+                                            Q(survey_id=user_srvy)  | Q(survey__approved=True) ) )
             for answer in answers:
-                org_id = answer.organization_id
+                srvy_id = answer.survey_id
                 if answer.integer:
                     response[question.id]['answers'].append(answer.integer)
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                        response[question.id]['active_answer'] = answer.integer
     return Response(response)
 
@@ -419,17 +459,18 @@ def api_multichoice(request, web_category):
     questionnaire = cat_list[0].questionnaire
 
     questions = Question.objects.filter(category__exact=cat_id)
-    if request.user.is_authenticated():
-        user_org = request.user.activeorganization.organization
+    if request.user.is_authenticated:
+        user_srvy = request.user.activesurvey.survey
         for question in questions:
             response[question.id] = {'q_text': question.text, 'questionnaire': questionnaire, 'answers': []}
             answers = Answer.objects.filter( Q(question_id__exact=question.id) & (
-                                            Q(organization_id=user_org)  | Q(organization__approved=True) ) )
+                                            Q(survey_id=user_srvy)  | Q(survey__approved=True) ) )
+            #change to this answer plus latest approved answer from *other* orgs
             for answer in answers:
-                org_id = answer.organization_id
+                srvy_id = answer.survey_id
                 if answer.integer:
                     response[question.id]['answers'].append(answer.integer)
-                    if user_org == org_id:
+                    if user_srvy == srvy_id:
                        response[question.id]['active_answer'] = answer.integer
     return Response(response)
 
@@ -441,46 +482,46 @@ def run_unique_query(request):
     print(res)
     return Response(res)
 
-def populate_joyplot(org):
+def populate_joyplot(srvy):
     data = {}
-    data['id'] = org.id
-    data['247_coverage'] = get_or_none(Answer, organization=org, question=41)
-    data['trauma_backup'] = get_or_none(Answer, organization=org, question=57)
-    data['trauma_backup_approved'] = get_or_none(Answer, organization=org, question=213)
-    data['ortho_247'] = get_or_none(Answer, organization=org, question=60)
-    data['ortho_liason'] = get_or_none(Answer, organization=org, question=61)
-    data['ortho_50_meetings'] = get_or_none(Answer, organization=org, question=63)
-    data['ortho_residency'] = get_or_none(Answer, organization=org, question=72)
-    data['ortho_fellowship'] = get_or_none(Answer, organization=org, question=73)
-    data['neuro_247'] = get_or_none(Answer, organization=org, question=75)
-    data['neuro_liason'] = get_or_none(Answer, organization=org, question=76)
-    data['neuro_50_meetings'] = get_or_none(Answer, organization=org, question=80)
-    data['neuro_residency'] = get_or_none(Answer, organization=org, question=84)
-    data['anesth_247'] = get_or_none(Answer, organization=org, question=87)
-    data['anesth_liason'] = get_or_none(Answer, organization=org, question=91)
-    data['general_atls_once'] = get_or_zero(Answer, organization=org, question=45)
-    data['general_atls_current'] = get_or_zero(Answer, organization=org, question=46)
-    data['trauma_priv'] = get_or_zero(Answer, organization=org, question=43)
-    data['trauma_panel'] = get_or_zero(Answer, organization=org, question=42)
-    data['trauma_cme'] = get_or_zero(Answer, organization=org, question=47)
-    data['trauma_board_eligible'] = get_or_zero(Answer, organization=org, question=44)
-    data['trauma_board_certified'] = get_or_zero(Answer, organization=org, question=152)
-    data['trauma_exclusive'] = get_or_zero(Answer, organization=org, question=54)
-    data['trauma_critical_certifications'] = get_or_zero(Answer, organization=org, question=58)
-    data['trauma_fellowship'] = get_or_zero(Answer, organization=org, question=59)
-    data['ortho_panel'] = get_or_zero(Answer, organization=org, question=64)
-    data['ortho_cme'] = get_or_zero(Answer, organization=org, question=62)
-    data['ortho_board_eligible'] = get_or_zero(Answer, organization=org, question=65)
-    data['ortho_board_certified'] = get_or_zero(Answer, organization=org, question=145)
-    data['ortho_exclusive'] = get_or_zero(Answer, organization=org, question=67)
-    data['neuro_panel'] = get_or_zero(Answer, organization=org, question=77)
-    data['neuro_cme'] = get_or_zero(Answer, organization=org, question=79)
-    data['neuro_board_eligible'] = get_or_zero(Answer, organization=org, question=214)
-    data['neuro_board_certified'] = get_or_zero(Answer, organization=org, question=215)
-    data['neuro_exclusive'] = get_or_zero(Answer, organization=org, question=81)
-    data['anesth_panel'] = get_or_zero(Answer, organization=org, question=93)
-    data['anesth_board_certified'] = get_or_zero(Answer, organization=org, question=216)
-    data['anesth_residency'] = get_or_zero(Answer, organization=org, question=94)
+    data['id'] = srvy.id
+    data['247_coverage'] = get_or_none(Answer, survey=srvy, question=41)
+    data['trauma_backup'] = get_or_none(Answer, survey=srvy, question=57)
+    data['trauma_backup_approved'] = get_or_none(Answer, survey=srvy, question=213)
+    data['ortho_247'] = get_or_none(Answer, survey=srvy, question=60)
+    data['ortho_liason'] = get_or_none(Answer, survey=srvy, question=61)
+    data['ortho_50_meetings'] = get_or_none(Answer, survey=srvy, question=63)
+    data['ortho_residency'] = get_or_none(Answer, survey=srvy, question=72)
+    data['ortho_fellowship'] = get_or_none(Answer, survey=srvy, question=73)
+    data['neuro_247'] = get_or_none(Answer, survey=srvy, question=75)
+    data['neuro_liason'] = get_or_none(Answer, survey=srvy, question=76)
+    data['neuro_50_meetings'] = get_or_none(Answer, survey=srvy, question=80)
+    data['neuro_residency'] = get_or_none(Answer, survey=srvy, question=84)
+    data['anesth_247'] = get_or_none(Answer, survey=srvy, question=87)
+    data['anesth_liason'] = get_or_none(Answer, survey=srvy, question=91)
+    data['general_atls_once'] = get_or_zero(Answer, survey=srvy, question=45)
+    data['general_atls_current'] = get_or_zero(Answer, survey=srvy, question=46)
+    data['trauma_priv'] = get_or_zero(Answer, survey=srvy, question=43)
+    data['trauma_panel'] = get_or_zero(Answer, survey=srvy, question=42)
+    data['trauma_cme'] = get_or_zero(Answer, survey=srvy, question=47)
+    data['trauma_board_eligible'] = get_or_zero(Answer, survey=srvy, question=44)
+    data['trauma_board_certified'] = get_or_zero(Answer, survey=srvy, question=152)
+    data['trauma_exclusive'] = get_or_zero(Answer, survey=srvy, question=54)
+    data['trauma_critical_certifications'] = get_or_zero(Answer, survey=srvy, question=58)
+    data['trauma_fellowship'] = get_or_zero(Answer, survey=srvy, question=59)
+    data['ortho_panel'] = get_or_zero(Answer, survey=srvy, question=64)
+    data['ortho_cme'] = get_or_zero(Answer, survey=srvy, question=62)
+    data['ortho_board_eligible'] = get_or_zero(Answer, survey=srvy, question=65)
+    data['ortho_board_certified'] = get_or_zero(Answer, survey=srvy, question=145)
+    data['ortho_exclusive'] = get_or_zero(Answer, survey=srvy, question=67)
+    data['neuro_panel'] = get_or_zero(Answer, survey=srvy, question=77)
+    data['neuro_cme'] = get_or_zero(Answer, survey=srvy, question=79)
+    data['neuro_board_eligible'] = get_or_zero(Answer, survey=srvy, question=214)
+    data['neuro_board_certified'] = get_or_zero(Answer, survey=srvy, question=215)
+    data['neuro_exclusive'] = get_or_zero(Answer, survey=srvy, question=81)
+    data['anesth_panel'] = get_or_zero(Answer, survey=srvy, question=93)
+    data['anesth_board_certified'] = get_or_zero(Answer, survey=srvy, question=216)
+    data['anesth_residency'] = get_or_zero(Answer, survey=srvy, question=94)
     return data
 
 @api_view(['GET'])
@@ -489,11 +530,11 @@ def joyplot(request):
     approved = []
     # these are hardcoded values for starter survey, need to find better method
     print(request.user)
-    if request.user.is_authenticated():
-        response.append(populate_joyplot(request.user.activeorganization.organization))
-        for org in Organization.objects.filter(org_type='center', approved=True):
-            if org != request.user.activeorganization.organization:
-                approved.append(populate_joyplot(org))
+    if request.user.is_authenticated:
+        response.append(populate_joyplot(request.user.activesurvey.survey))
+        for srvy in Survey.objects.filter(org_type='center', approved=True):
+            if srvy != request.user.activesurvey.survey:
+                approved.append(populate_joyplot(srvy))
     response.append(average_dict(approved))
     return Response(response)
 
@@ -523,8 +564,9 @@ class QuestionList(viewsets.ReadOnlyModelViewSet):
         print(request.user)
         questions = Question.objects.filter(category=category).order_by('order')
         for q in questions:
-            if request.user.is_authenticated():
-                q.answer = Answer.objects.filter(organization=request.user.activeorganization.organization, question=q)
+            if request.user.is_authenticated:
+                print("Question List potential issue.")
+                q.answer.set(Answer.objects.filter(survey=request.user.activesurvey.survey, question=q))
             else:
                 q.answer = Answer.objects.none()
         serializer = self.get_serializer(questions, many=True)
@@ -548,21 +590,36 @@ class AnswerAccessPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         self.message = "You can only modify your own answers"
-        return obj.organization == request.user.activeorganization.organization
+        return obj.survey == request.user.activesurvey.survey
 
 class OrganizationAccessPermission(permissions.BasePermission):
     message = 'Must be logged in to see your organizations'
 
     def has_permission(self, request, view):
         if request.method == 'POST':
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 self.message = 'You can only create organizations in which you are the user'
                 user_id = request.user.id
                 return 'users' in request.data and user_id in request.data['users']
-        return request.user.is_authenticated()
+        return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
         self.message = "You can only modify your own organizations"
+        return request.user in obj.users.all()
+
+class SurveyAccessPermission(permissions.BasePermission):
+    message = 'Must be logged in to see your surveys'
+
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            if request.user.is_authenticated:
+                self.message = 'You can only create surveys in which you are the user'
+                user_id = request.user.id
+                return 'users' in request.data and user_id in request.data['users']
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        self.message = "You can only modify your own surveys"
         return request.user in obj.users.all()
 
 
@@ -575,14 +632,14 @@ class CompletionView(viewsets.ViewSet):
         data = []
         # determine if center or system
         try:
-            qtype = request.user.activeorganization.organization.org_type
+            qtype = request.user.activesurvey.survey.organization.org_type
             for category in Category.objects.filter(questionnaire=qtype):
                 c = {}
                 c['category'] = category.id
                 questions = Question.objects.filter(category=category)
                 c['total_questions'] = len(questions)
                 answer_count = Answer.objects.filter(
-                        organization=request.user.activeorganization.organization,
+                        survey=request.user.activesurvey.survey,
                         question__in=questions).count()
                 c['completed_questions'] = answer_count
                 data.append(c)
@@ -598,8 +655,9 @@ class StatView(viewsets.ViewSet):
 
     def retrieve(self, request, pk):
         question = Question.objects.get(pk=pk)
+        #change to this answer plus latest approved answer from *other* orgs
         answer = Answer.objects.get(question=question, user=request.user)
-        other_answers = Answer.objects.filter( Q(question=answer.question) & Q(organization__approved=True))
+        other_answers = Answer.objects.filter( Q(question=answer.question) & Q(survey__approved=True))
         truth_map = [x.eq(answer) for x in other_answers]
         same = truth_map.count(True)
         percent = 0.0
@@ -627,21 +685,36 @@ class UserView(viewsets.ViewSet):
 
     def post(self, request):
         if 'id' not in request.data:
-            return Response('Organization ID required', status=400)
-        org_id = request.data['id']
-        org = Organization.objects.filter(pk=org_id, users=request.user)
-        if org.exists() == False:
-            return Response('organization either does not exist, or you do not have permission', status=403)
-        if hasattr(request.user, 'activeorganization'):
-            request.user.activeorganization.organization = org.first()
-            request.user.activeorganization.save()
+            return Response('Survey ID required', status=400)
+        srvy_id = request.data['id']
+        #change to be org for permission
+        allowed_orgs = Organization.objects.filter(users=request.user)
+        srvy = Survey.objects.filter(pk=srvy_id, organization__in=allowed_orgs)
+        if srvy.exists() == False:
+            return Response('survey either does not exist, or you do not have permission', status=403)
+        if hasattr(request.user, 'activesurvey'):
+            request.user.activesurvey.survey = srvy.first()
+            request.user.activesurvey.save()
         else:
-            ao = ActiveOrganization.objects.create(user=request.user,
-                                                   organization=org.first())
-            request.user.activeorganization = ao
+            ao = ActiveSurvey.objects.create(user=request.user,
+                                                   survey=srvy.first())
+            request.user.activesurvey = ao
         request.user.save()
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+class SurveyView(viewsets.ModelViewSet):
+    serializer_class = SurveySerializer
+    permission_classes = (SurveyAccessPermission,)
+    authentication_classes = (TokenAuthentication,)
+    queryset = Survey.objects.all()
+
+    def list(self, request):
+        if request.user.is_authenticated:
+            allowed_orgs = Organization.objects.filter(users=request.user)
+            surveys = Survey.objects.filter(organization__in=allowed_orgs).order_by('date')
+            return Response(SurveySerializer(surveys, many=True).data)
+        return Response()
 
 class OrganizationView(viewsets.ModelViewSet):
     serializer_class = OrganizationSerializer
@@ -650,9 +723,9 @@ class OrganizationView(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
 
     def list(self, request):
-        if request.user.is_authenticated():
-            organizations = Organization.objects.filter(users=request.user)
-            return Response(OrganizationSerializer(organizations, many=True).data)
+        if request.user.is_authenticated:
+            orgs = Organization.objects.filter(users=request.user)
+            return Response(OrganizationSerializer(orgs, many=True).data)
         return Response()
 
 class AnswerViewSet(viewsets.ModelViewSet):
@@ -663,22 +736,22 @@ class AnswerViewSet(viewsets.ModelViewSet):
     lookup_fields = ('question', 'user')
 
     def retrieve(self, request, pk=None):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             queryset = Answer.objects.all()
-            data = get_object_or_404(queryset, question=pk, organization=request.user.activeorganization.organization)
+            data = get_object_or_404(queryset, question=pk, survey=request.user.activesurvey.survey)
             serializer = AnswerSerializer(data)
             return Response(serializer.data)
         else:
             return Response()
 
     def perform_create(self, serializer):
-        old_answer = Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question'])
-        Answer.objects.filter(organization=self.request.user.activeorganization.organization, question=serializer.validated_data['question']).delete()
-        instance = serializer.save(organization=self.request.user.activeorganization.organization)
+        old_answer = Answer.objects.filter(survey=self.request.user.activesurvey.survey, question=serializer.validated_data['question'])
+        Answer.objects.filter(survey=self.request.user.activesurvey.survey, question=serializer.validated_data['question']).delete()
+        instance = serializer.save(survey=self.request.user.activesurvey.survey)
         self.run_rdf(instance, old_answer)
 
     def perform_update(self, serializer):
-        instance = serializer.save(organization=self.request.user.activeorganization.organization)
+        instance = serializer.save(survey=self.request.user.activesurvey.survey)
         self.run_rdf(instance)
 
     def run_rdf(self, instance, old_answer=None):
@@ -749,22 +822,23 @@ class AnswerViewSet(viewsets.ModelViewSet):
             if '{{value}}' in uri:
                 return str(answer.value())
             else:
-                node = statement + 'o' + str(answer.organization_id) + 'q' + str(answer.question_id)
+                node = statement + 'o' + str(answer.survey_id) + 'q' + str(answer.question_id)
                 return node
         prefix = RDFPrefix.objects.get(short=pre).full
         if uri:
             partial_statement = prefix + uri
         else:
             partial_statement = prefix
-        return  '<' + partial_statement.format(user=answer.organization.id) + '>' 
+        return  '<' + partial_statement.format(user=answer.survey.id) + '>' 
 
 class RDFView(APIView):
     authentication_classes = (TokenAuthentication,)
 
-    def get(self, request, organization_id):
-        organization = Organization.objects.get(pk=organization_id)
-        if request.user.is_authenticated() and request.user in organization.users.all():
-            rdf = rdf_from_organization(organization)
+    def get(self, request, survey_id):
+        survey = Survey.objects.get(pk=survey_id)
+        #change to org users
+        if request.user.is_authenticated and request.user in survey.users.all():
+            rdf = rdf_from_survey(survey)
             return HttpResponse(rdf, content_type="rdf/xml")
         else:
             return Response('Incorrect User', status=403)

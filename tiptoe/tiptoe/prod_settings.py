@@ -3,6 +3,7 @@ from tiptoe.settings import *
 print("Running on PROD settings")
 
 ALLOWED_HOSTS = ['0.0.0.0', 'django-tiptoe-dev-jmw.apps.dbmi.cloud', 'cafe-trauma.com', 'cafedb.ad.uams.edu']
+LOGIN_URL = 'tiptoe.apps.dbmi.cloud'
 
 SECRET_KEY = os.getenv('TIPTOE_DJANGO_SECRET_KEY', '^%(#2k$5n08-i2=t8f%w3iy3^)g(=nfjy#%)!!rqx_0q3e#*ym')
 

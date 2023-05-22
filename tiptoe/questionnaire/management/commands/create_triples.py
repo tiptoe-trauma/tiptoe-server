@@ -21,8 +21,8 @@ class Command(BaseCommand):
         print("prefixes: " + prefix.short + " " + prefixes[prefix.short]);
 
     # Generate triples for answers
-    for organization in Organization.objects.all():
-        for answer in Answer.objects.filter(organization=organization):
+    for survey in Survey.objects.all():
+        for answer in Answer.objects.filter(survey=survey):
             run_statements(get_triples(answer, prefixes, bnodes), answer.context());
             for triple in get_triples(answer, prefixes, bnodes):
                 print(triple);
