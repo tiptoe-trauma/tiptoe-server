@@ -9,12 +9,15 @@ EXPOSE 3000
 RUN apk update && \
     apk add --no-cache \
         gcc \
+        g++ \
         musl-dev \
         libc-dev \
         linux-headers \
         postgresql-dev
 
 COPY newer_reqs.txt .
+RUN python -m ensurepip
+RUN pip install --no-cache --upgrade pip setuptools
 RUN pip install -r newer_reqs.txt
 
 RUN pip install gunicorn

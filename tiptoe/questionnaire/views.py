@@ -14,6 +14,10 @@ from rest_framework import permissions
 from questionnaire.rdf import get_definitions, run_query, run_statements, delete_context, rdf_from_survey
 from averaged_dict.average_dict import average_dict
 from django.core.mail import send_mail
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import pandas as pd
+import xml.etree.ElementTree as ET
 
 def get_or_zero(classmodel, **kwargs):
     try:
@@ -83,7 +87,7 @@ def invite_to_org(request):
     if request.user.is_authenticated:
         print("authenticated")
         body = json.loads(request.body.decode('utf-8'))
-        email = body[0]
+        email = body[0].lower()
         org_id = body[1]
         print(org_id)
         message = body[2]
@@ -148,7 +152,7 @@ def token_login(request):
     return Response("Server Error", status=500)
 
 def unique_email(email):
-    return User.objects.filter(email=email).count() == 0
+    return User.objects.filter(email=email.lower()).count() == 0
 
 @api_view(['POST'])
 def create_survey(request):
@@ -174,7 +178,7 @@ def create_web_user(request, questionnaire_type):
     if questionnaire_type not in ['center', 'system', 'tiptoe', 'tos']:
         return Response("Cannot create survey of type {}".format(questionnaire_type), status=500)
     body = json.loads(request.body.decode('utf-8'))
-    email = body.get('email')
+    email = body.get('email').lower()
     name = body.get('name')
     if(not unique_email(email)):
         return Response("Email must be unique", status=500)
@@ -197,7 +201,7 @@ def create_web_user(request, questionnaire_type):
 def update_email(request):
     if request.user.is_authenticated:
         body = json.loads(request.body.decode('utf-8'))
-        email = body.get('email')
+        email = body.get('email').lower()
         if(not unique_email(email)):
             return Response("Email must be unique", status=500)
         if email:
@@ -842,3 +846,70 @@ class RDFView(APIView):
             return HttpResponse(rdf, content_type="rdf/xml")
         else:
             return Response('Incorrect User', status=403)
+
+
+def model_form_upload(request):
+    if request.method == 'POST':
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = DocumentForm()
+    return redirect('home')
+
+
+# List of potential PHI data features
+phi_features = ["LastModifiedDateTime", "FacilityId", "PatientId", "HomeZip", "HomeCountry", "HomeCity", "HomeState", "HomeCounty", "HomeResidences", "DateOfBirth", "Age", "AgeUnits", "IncidentDate", "IncidentTime", "PlaceOfInjuryCode", "InjuryZip", "IncidentCountry", "IncidentCity", "IncidentState", "IncidentCounty", "HospitalArrivalDate", "HospitalArrivalTime", "TraumaSurgeonArrivalDate", "TraumaSurgeonArrivalTime", "PatientUUID", "EdDischargeDate", "EdDischargeTime", "HospitalDischargeDate", "HospitalDischargeTime", "WithdrawalOfLifeSupportingTreatmentDate", "WithdrawalOfLifeSupportingTreatmentTime", "NationalProviderIdentifier" ]
+
+# Function to check if a data feature contains PHI
+def contains_phi(element):
+    return element.tag.lower() in [tag.lower() for tag in phi_features] and element.text is not None and element.text.strip() != ""
+
+@api_view(['POST'])
+def read_file(request, survey_id):
+    # Parse the TQIP file and return a dictionary of needed values
+    if request.method == 'POST':
+        file = request.FILES['profile']
+        print(file)
+
+        # Check if the file format is XML
+        if file.name.endswith('.xml'):
+            print('xml file')
+            # Load the XML file and parse it
+            try:
+                tree = ET.parse(file)
+                root = tree.getroot()
+                print('getting file')
+
+                # Check if XML data contains PHI before processing. There could be a problem with performance if the file is very large, a potential solution
+                # would be to only check the first NtdsRecord.
+                for record in root.findall('NtdsRecord'):
+                    print('reading record')
+                    for column in record:
+                        if contains_phi(column):
+                            #This will take the file out of the loop and it should never reach the storage since this return will break the code.
+                            return Response(f"Error: The data feature '{column.tag}' contains PHI. Please resubmit the document without PHI.", status=500)
+                #break
+                #Uncomment the break above if performance becomes an issue (large files being checked)
+
+                #Since data did not contain PHI, then it can be saved and stored.
+                print('saving file')
+                tqip = Tqip.objects.create(content=file)
+                survey = Survey.objects.get(pk=survey_id)
+                survey.tqip = tqip
+                tqip.save()
+                survey.save()
+
+                return JsonResponse({'message': 'File uploaded and processed successfully!'})
+
+            except Exception as e:
+                print(f'error processing file:  {str(e)}')
+                return Response(f"Error processing the file: {str(e)}", status=500)
+
+        else:
+            print('Invalid file format. Please upload an XML file.')
+            return Response("Invalid file format. Please upload an XML file.", status=500)
+
+    else:
+        return Response("Invalid request", status=500)

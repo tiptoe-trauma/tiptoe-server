@@ -124,6 +124,7 @@ class Survey(models.Model):
     approved = models.BooleanField(default=False)
     date = models.DateField(null=True, blank=True)
     organization = models.ForeignKey('Organization', on_delete=models.CASCADE, related_name='surveys', blank=True, null=True)
+    tqip = models.ForeignKey('Tqip', on_delete=models.CASCADE, related_name='survey', blank=True, null=True)
     def __str__(self):
         return self.name
 
@@ -212,3 +213,12 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 def generate_graphs(sender, instance=None, created=False, **kwargs):
     if instance:
         call_command('generate_graphs', str(instance.question.id), verbosity=0)
+
+class Document(models.Model):
+    description = models.CharField(max_length=255, blank=True)
+    document = models.FileField(upload_to='documents/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+class Tqip(models.Model):
+    content = models.FileField(upload_to="tqip")
+

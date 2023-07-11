@@ -62,5 +62,6 @@ urlpatterns = [
     re_path(r'^api/answers/(?P<web_category>\S+)', api_category_responses),
     re_path(r'^api/run_query/$', run_unique_query),
     re_path(r'^api/sample_size/', get_sample_size),
+    re_path(r'^api/submit_tqip/(?P<survey_id>[0-9]+)', read_file),
     re_path(r'^graphs/(?P<path>.*)', RedirectView.as_view(url='/static/%(path)s')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
