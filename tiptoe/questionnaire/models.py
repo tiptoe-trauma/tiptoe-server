@@ -35,6 +35,7 @@ QUESTION_TYPES = (('combo', 'Combo Box'),
                   ('text', 'Text Field'),
                   ('int', 'Integer Field'),
                   ('unit', 'Unit Int Field'),
+                  ('flt', 'Float Field'),
                   ('bool', 'Yes or No'))
 
 class Question(models.Model):
@@ -147,6 +148,7 @@ class Answer(models.Model):
     options = models.ManyToManyField('Option', blank=True)
     question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='answer')
     integer = models.IntegerField(null=True, blank=True)
+    flt= models.FloatField(null=True, blank=True)
     yesno = models.BooleanField(null=True, blank=True)
     survey = models.ForeignKey('Survey', on_delete=models.CASCADE)
     class Meta:
@@ -158,6 +160,8 @@ class Answer(models.Model):
             return self.text == target.text
         if(target.question.q_type == 'int'):
             return self.integer == target.integer
+        if(target.question.q_type == 'flt'):
+            return self.flt == target.flt
         return False
     def value(self):
         if(self.question.q_type == 'bool'):
@@ -166,6 +170,8 @@ class Answer(models.Model):
             return self.text
         if(self.question.q_type == 'int'):
             return self.integer
+        if(self.question.q_type == 'flt'):
+            return self.flt
         if(self.question.q_type == 'check'):
             return [ x.text for x in self.options.all() ]
         return 'bad question type'

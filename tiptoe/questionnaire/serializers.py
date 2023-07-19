@@ -18,7 +18,7 @@ class CompletionSerializer(serializers.Serializer):
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answer
-        fields = ('text', 'options', 'integer', 'yesno', 'question')
+        fields = ('text', 'options', 'integer', 'flt', 'yesno', 'question')
 
 class UserAnswer(serializers.ModelSerializer):
     # user request to find specific user

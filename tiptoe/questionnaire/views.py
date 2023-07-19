@@ -334,14 +334,16 @@ def api_category_responses(request, web_category):
             for answer in answers:
                 srvy_id = answer.survey_id
                 if not answer_type:
-                    if answer.yesno is not None or answer.integer == -1:
+                    if answer.integer == -1:
                         answer_type = "yesno"
-                    elif answer.integer:
+                    elif answer.integer or answer.flt:
                         answer_type = "number"
                     elif answer.text:
                         answer_type = "text"
                     elif answer.options.values():
                         answer_type = "options"
+                    elif answer.yesno is not None: 
+                        answer_type = "yesno"
                 
                 if answer_type == "yesno":
                     if answer.yesno:
@@ -357,12 +359,21 @@ def api_category_responses(request, web_category):
                     if answer.integer == -1:
                         response[question.id]['total'] -= 1
                 elif answer_type == "number":
-                    try:
-                        response[question.id]['numbers'].append(answer.integer)
-                    except KeyError:
-                        response[question.id]['numbers'] = [answer.integer]
-                    if user_srvy == srvy_id:
-                        response[question.id]['active_answer'] = answer.integer
+                    if (answer.integer):
+                        try:
+                            response[question.id]['numbers'].append(answer.integer)
+                        except KeyError:
+                            response[question.id]['numbers'] = [answer.integer]
+                        if user_srvy == srvy_id:
+                            response[question.id]['active_answer'] = answer.integer
+                    else:
+                        try:
+                            response[question.id]['numbers'].append(answer.flt)
+                        except KeyError:
+                            response[question.id]['numbers'] = [answer.flt]
+                        if user_srvy == srvy_id:
+                            response[question.id]['active_answer'] = answer.flt
+
                 elif answer_type == "text":
                     if 'options' not in response[question.id].keys():
                         response[question.id]['options'] = {}
@@ -809,6 +820,18 @@ class AnswerViewSet(viewsets.ModelViewSet):
                 run_statements(statements, instance.context())
         elif instance.question.q_type == 'int':
             if instance.integer:
+                statements = []
+                delete_context(instance.context())
+                for statement in Statement.objects.filter(question=instance.question):
+                    s = self.parse(statement.subject, instance)
+                    p = self.parse(statement.predicate, instance)
+                    o = self.parse(statement.obj, instance)
+                    statements.append((s, p, o))
+                run_statements(statements, instance.context())
+            else:
+                delete_context(instance.context())
+        elif instance.question.q_type == 'flt':
+            if instance.flt:
                 statements = []
                 delete_context(instance.context())
                 for statement in Statement.objects.filter(question=instance.question):
