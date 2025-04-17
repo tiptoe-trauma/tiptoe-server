@@ -178,7 +178,7 @@ class Answer(models.Model):
     def __str__(self):
         return "{} - {}".format(self.survey, self.question.id)
     def context(self):
-        return "<https://cafe-trauma.com/cafe/survey/{}/question/{}>".format(self.survey.id, self.question.id)
+        return "<https://cafe-trauma.com/cafe/survey/{}>".format(self.survey.id)
 
 FUNCTION_TYPES = (('month_to_date', 'Number of months to date'),
                   ('example', 'Example'))

@@ -84,7 +84,7 @@ def run_statements(statements, context):
     print(query)
     params = {'context': context}
     payload = {'update': query}
-    r = requests.request('PUT', settings.TRIPLESTORE_URL + '/statements', data=body, headers=headers,  params=params, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD), verify=False)
+    r = requests.request('POST', settings.TRIPLESTORE_URL + '/statements',  data=body, headers=headers,  params=params, auth=(settings.TRIPLESTORE_USER, settings.TRIPLESTORE_PASSWORD), verify=False)
     if r.status_code == 200 or r.status_code == 204:
         print('triples added')
     else:
@@ -104,13 +104,15 @@ def get_uri(text, prefixes, bnodes, answer):
                 # we have a blank node
                 # check to see if it already exists
                 if bnode_name in bnodes.keys():
-                    return  '_:' + bnodes[bnode_name]
+                    #return  '_:' + bnodes[bnode_name]
+                    return  '<' + bnodes[bnode_name] + '>'
                 else:
                     # if not create it
                     # b = BNode(bnode_name)
                     b = prefixes['bnode'][bnode_name]
                     bnodes[bnode_name] = b
-                    return  '_:' +  b 
+                    #return  '_:' +  b 
+                    return   '<' + b + '>'
         else:
             if split[0] in prefixes.keys():
                 return '<' + prefixes[split[0]][split[1]] + '>'

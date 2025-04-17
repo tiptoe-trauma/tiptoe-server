@@ -897,7 +897,7 @@ def read_file(request, survey_id):
         print(file)
 
         # Check if the file format is XML
-        if file.name.endswith('.xml'):
+        if file.name.lower().endswith('.xml'):
             print('xml file')
             # Load the XML file and parse it
             try:
